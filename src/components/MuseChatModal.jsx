@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function MuseChatModal({
   isOpen,
@@ -20,7 +20,7 @@ export default function MuseChatModal({
 
   if (!isOpen) return null;
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!inputVal.trim()) return;
 
@@ -30,54 +30,40 @@ export default function MuseChatModal({
     const newMsgs = [...messages, { id: 'msg_' + Date.now(), role: 'user', content: userText }];
     setMessages(newMsgs);
 
-    setTimeout(() => {
-      let museReply = "";
-      const lower = userText.toLowerCase();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/muse-reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: userText, bride, vendors, history: newMsgs })
+      });
 
-      // Check for vendor query
-      if (lower.includes('cater') || lower.includes('food') || lower.includes('spit braai')) {
-        const liveCaterers = vendors.filter((v) => v.isLive && v.category === 'Catering');
-        if (liveCaterers.length > 0) {
-          museReply = `I found ${liveCaterers.length} active catering team(s) serving Gauteng:\n`;
-          liveCaterers.forEach((c) => {
-            museReply += `• ${c.businessName} (Starting from R ${c.priceFrom.toLocaleString('en-ZA')})\n`;
-          });
-          museReply += `\nWould you like to view their details or send a direct enquiry?`;
-        } else {
-          museReply = `I searched our live vendor directory for catering in your area, but we don't have an active listing matching that criteria yet. I've recorded this supply gap for our recruitment team.`;
-          onLogSearchMiss({
-            id: 'sm_muse_' + Date.now(),
-            category: 'Catering',
-            area: bride?.celebrations?.[0]?.area || 'Sandton',
-            createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
-          });
-        }
-      } else if (lower.includes('venue') || lower.includes('place') || lower.includes('location')) {
-        const liveVenues = vendors.filter((v) => v.isLive && v.category === 'Venue');
-        if (liveVenues.length > 0) {
-          museReply = `Here are active venue options in Sandton & Johannesburg:\n`;
-          liveVenues.forEach((v) => {
-            museReply += `• ${v.businessName} — From R ${v.priceFrom.toLocaleString('en-ZA')}\n`;
-          });
-        } else {
-          museReply = `No active venue listings found for that criteria right now. I've logged this to help expand our partner network.`;
-        }
-      } else if (lower.includes('budget') || lower.includes('split') || lower.includes('cost')) {
-        const overall = bride?.overallBudget || 600000;
-        const tradB = Math.round(overall * 0.37);
-        const whiteB = Math.round(overall * 0.63);
-        museReply = `For your total budget of R ${overall.toLocaleString('en-ZA')}, here is how I recommend splitting it:\n• Traditional Day: R ${tradB.toLocaleString('en-ZA')} (Focus on traditional catering, tents & attire)\n• White Wedding: R ${whiteB.toLocaleString('en-ZA')} (Focus on venue reception & photography)`;
-      } else if (lower.includes('clash') || lower.includes('date') || lower.includes('timeline')) {
-        museReply = `Checking your dates: Traditional Day is scheduled for ${bride?.celebrations?.[0]?.date || '14 Nov 2026'}, and White Wedding is scheduled for ${bride?.celebrations?.[1]?.date || '5 Dec 2026'}. That leaves 3 weeks between events, which is a great timeline buffer for logistics and family rest.`;
-      } else {
-        museReply = `I'm right here with you! Whether you need to adjust budget lines in Rands, manage checklist items for both weddings, or locate verified local vendors in Soweto or Sandton, just let me know.`;
+      if (!response.ok) {
+        throw new Error('Muse API request failed');
       }
 
+      const data = await response.json();
       setMessages((prev) => [
         ...prev,
-        { id: 'msg_res_' + Date.now(), role: 'muse', content: museReply }
+        {
+          id: 'msg_res_' + Date.now(),
+          role: 'muse',
+          content: data.text || 'Muse could not generate a reply.'
+        }
       ]);
-    }, 600);
+    } catch (error) {
+      console.error('Muse API error:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: 'msg_res_' + Date.now(),
+          role: 'muse',
+          content:
+            'I could not reach the Muse backend. Please make sure the server is running at the configured API URL.'
+        }
+      ]);
+    }
   };
 
   return (
