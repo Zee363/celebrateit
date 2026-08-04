@@ -40,7 +40,9 @@ export default function MuseChatModal({
       });
 
       if (!response.ok) {
-        throw new Error('Muse API request failed');
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Muse API Error:', error);
+        throw new Error(error.error || 'Muse API request failed');
       }
 
       const data = await response.json();
