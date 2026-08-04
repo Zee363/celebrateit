@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
   const [step, setStep] = useState(1);
-  const [brideName, setBrideName] = useState(user?.name || 'Nomsa');
+  const [brideName, setBrideName] = useState(user?.name || '');
   const [celebrationChoice, setCelebrationChoice] = useState('BOTH'); // TRADITIONAL, WHITE, BOTH
   
   // Dates & Areas
@@ -129,7 +129,7 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
                 type="text"
                 value={brideName}
                 onChange={(e) => setBrideName(e.target.value)}
-                placeholder="e.g. Nomsa"
+                placeholder="e.g. Sarah"
                 className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-4 py-3 text-sm text-[#1A1816] focus:outline-none focus:border-[#9E784B]"
               />
             </div>

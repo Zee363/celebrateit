@@ -17,6 +17,9 @@ import VendorDashboard from './components/VendorDashboard';
 import VendorListingEditor from './components/VendorListingEditor';
 import MuseChatModal from './components/MuseChatModal';
 import AdminDashboard from './components/AdminDashboard';
+import AccountSettings from './components/AccountSettings';
+import MessagesView from './components/MessagesView';
+import PlanningTogetherView from './components/PlanningTogetherView';
 
 // Mock Seed Data
 import {
@@ -57,12 +60,21 @@ const isUuid = (str) => {
 
 export default function App() {
   // Navigation & View Mode
-  const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'bride_dashboard' | 'vendor_directory' | 'vendor_dashboard' | 'vendor_editor' | 'admin_dashboard'
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('celebrateit_viewMode');
+    return saved || 'landing';
+  });
 
   // Global State Datasets
-  const [currentUser, setCurrentUser] = useState(null); // { id, name, email, role }
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('celebrateit_currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [vendors, setVendors] = useState(INITIAL_VENDORS);
-  const [bride, setBride] = useState(INITIAL_BRIDE);
+  const [bride, setBride] = useState(() => {
+    const saved = localStorage.getItem('celebrateit_bride');
+    return saved ? JSON.parse(saved) : INITIAL_BRIDE;
+  });
   const [enquiries, setEnquiries] = useState(INITIAL_ENQUIRIES);
   const [searchMisses, setSearchMisses] = useState(INITIAL_SEARCH_MISSES);
 
@@ -73,6 +85,27 @@ export default function App() {
   const [selectedVendorForEnquiry, setSelectedVendorForEnquiry] = useState(null);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [museOpen, setMuseOpen] = useState(false);
+
+  // Save state changes to localStorage for mock persistence
+  useEffect(() => {
+    localStorage.setItem('celebrateit_viewMode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('celebrateit_currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('celebrateit_currentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (bride) {
+      localStorage.setItem('celebrateit_bride', JSON.stringify(bride));
+    } else {
+      localStorage.removeItem('celebrateit_bride');
+    }
+  }, [bride]);
 
   // Initialize and load data from Supabase if configured
   useEffect(() => {
@@ -177,7 +210,13 @@ export default function App() {
     setCurrentUser(user);
     if (!isSupabaseConfigured) {
       if (user.role === 'BRIDE') {
-        setOnboardingOpen(true);
+        // If bride already has celebrations configured, bypass onboarding
+        if (bride && bride.celebrations && bride.celebrations.length > 0) {
+          setOnboardingOpen(false);
+          setViewMode('bride_dashboard');
+        } else {
+          setOnboardingOpen(true);
+        }
       } else if (user.role === 'VENDOR') {
         setViewMode('vendor_dashboard');
       } else if (user.role === 'ADMIN') {
@@ -206,7 +245,12 @@ export default function App() {
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem('celebrateit_currentUser');
+    localStorage.removeItem('celebrateit_bride');
+    localStorage.removeItem('celebrateit_viewMode');
     setCurrentUser(null);
+    setBride(INITIAL_BRIDE);
+    setOnboardingOpen(false);
     setViewMode('landing');
   };
 
@@ -227,7 +271,7 @@ export default function App() {
 
     // Demo simulation for logged-in user in Supabase mode
     if (targetRole === 'BRIDE') {
-      setCurrentUser({ id: 'b1', name: 'Nomsa (Demo)', email: 'nomsa@example.com', role: 'BRIDE' });
+      setCurrentUser({ id: 'b1', name: 'Bride (Demo)', email: 'bride@example.com', role: 'BRIDE' });
       const brideData = await getBrideData('b1') || INITIAL_BRIDE;
       setBride(brideData);
       setViewMode('bride_dashboard');
@@ -516,11 +560,8 @@ export default function App() {
         <Navbar
           onOpenAuth={handleOpenAuth}
           currentUser={currentUser}
-          onOpenDashboard={() => {
-            if (currentUser?.role === 'BRIDE') setViewMode('bride_dashboard');
-            else if (currentUser?.role === 'VENDOR') setViewMode('vendor_dashboard');
-            else if (currentUser?.role === 'ADMIN') setViewMode('admin_dashboard');
-          }}
+          onNavigate={setViewMode}
+          currentView={viewMode}
           onLogout={handleLogout}
         />
 
@@ -579,6 +620,31 @@ export default function App() {
             searchMisses={searchMisses}
             enquiries={enquiries}
           />
+        )}
+
+        {viewMode === 'account_settings' && (
+          <AccountSettings
+            user={currentUser}
+            onSave={(updated) => {
+              setCurrentUser(updated);
+              setViewMode(currentUser?.role === 'BRIDE' ? 'bride_dashboard' : 'landing');
+            }}
+            onLogout={handleLogout}
+          />
+        )}
+
+        {viewMode === 'messages' && (
+          <MessagesView 
+            enquiries={enquiries}
+            onBrowseDirectory={() => setViewMode('vendor_directory')}
+            onSendReply={handleSendReply}
+            onMarkBooked={handleMarkBooked}
+            currentRole={currentUser?.role || 'BRIDE'}
+          />
+        )}
+
+        {viewMode === 'planning_together' && (
+          <PlanningTogetherView currentUser={currentUser} />
         )}
       </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MiniMuseMark, FeatureBudgetIcon, FeatureChecklistIcon, FeatureClashIcon, FeatureDirectoryIcon } from './CustomIcons';
 
 export default function MeetMuseSection({ onOpenMuse }) {
   const [customMessages, setCustomMessages] = useState([]);
@@ -35,7 +36,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
             
             {/* Meet Muse Pill Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#E6DED6] bg-white text-[#1A1816]">
-              <span className="text-xs font-semibold text-[#9E784B] font-serif">✨ M</span>
+              <MiniMuseMark className="w-5 h-5" />
               <span className="font-sans text-xs font-semibold uppercase tracking-widest text-[#1A1816]/70">
                 MEET MUSE
               </span>
@@ -56,9 +57,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
               {/* Card 1 */}
               <div className="bg-white p-5 rounded-xl border border-[#E6DED6] space-y-2.5 transition-all hover:border-[#9E784B]/40">
                 <div className="w-8 h-8 rounded-lg bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center text-[#9E784B]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
+                  <FeatureBudgetIcon className="w-4 h-4" />
                 </div>
                 <h3 className="font-serif text-lg font-medium text-[#1A1816]">
                   Splits your budget beautifully
@@ -71,9 +70,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
               {/* Card 2 */}
               <div className="bg-white p-5 rounded-xl border border-[#E6DED6] space-y-2.5 transition-all hover:border-[#9E784B]/40">
                 <div className="w-8 h-8 rounded-lg bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center text-[#9E784B]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
+                  <FeatureChecklistIcon className="w-4 h-4" />
                 </div>
                 <h3 className="font-serif text-lg font-medium text-[#1A1816]">
                   Tells you what to do next
@@ -86,10 +83,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
               {/* Card 3 */}
               <div className="bg-white p-5 rounded-xl border border-[#E6DED6] space-y-2.5 transition-all hover:border-[#9E784B]/40">
                 <div className="w-8 h-8 rounded-lg bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center text-[#9E784B]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <FeatureDirectoryIcon className="w-4 h-4" />
                 </div>
                 <h3 className="font-serif text-lg font-medium text-[#1A1816]">
                   Finds vendors who fit you
@@ -102,9 +96,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
               {/* Card 4 */}
               <div className="bg-white p-5 rounded-xl border border-[#E6DED6] space-y-2.5 transition-all hover:border-[#9E784B]/40">
                 <div className="w-8 h-8 rounded-lg bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center text-[#9E784B]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <FeatureClashIcon className="w-4 h-4" />
                 </div>
                 <h3 className="font-serif text-lg font-medium text-[#1A1816]">
                   Keeps your two dates from clashing
@@ -120,7 +112,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
             <div className="pt-2 space-y-3">
               <button
                 onClick={onOpenMuse}
-                className="font-sans text-sm font-semibold bg-[#9E784B] text-white px-7 py-3 rounded-full hover:bg-[#8A673E] transition-all shadow-xs cursor-pointer active:scale-95 inline-flex items-center gap-2"
+                className="font-sans text-sm font-semibold bg-[#1A1816] text-white px-7 py-3 rounded-full hover:bg-[#2A2623] transition-all shadow-xs cursor-pointer active:scale-95 inline-flex items-center gap-2"
               >
                 Plan with Muse —
               </button>
@@ -137,10 +129,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
               
               {/* Chat Header */}
               <div className="flex items-center gap-3 pb-4 border-b border-[#E6DED6]/70">
-                <div className="w-10 h-10 rounded-full bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center font-serif text-sm font-bold text-[#9E784B] relative">
-                  M
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#9E784B] rounded-full border-2 border-white"></span>
-                </div>
+                <MiniMuseMark className="w-10 h-10" />
                 <div>
                   <h4 className="font-serif text-base font-medium text-[#1A1816]">Muse</h4>
                   <p className="font-sans text-xs text-[#1A1816]/60">Your wedding planning assistant</p>
@@ -159,9 +148,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
 
                 {/* Bubble 1: Muse */}
                 <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center font-serif text-xs font-bold text-[#9E784B] shrink-0 mt-0.5">
-                    M
-                  </div>
+                  <MiniMuseMark className="w-7 h-7 mt-0.5" />
                   <div className="bg-[#F9F5F2] text-[#1A1816] p-3.5 rounded-2xl rounded-tl-xs max-w-md text-xs sm:text-sm leading-relaxed space-y-2">
                     <p>
                       Such a good thing to look at together. If your traditional day is at home with about 180 guests and your white wedding is a venue reception for 120, I'd start around:
@@ -185,9 +172,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
 
                 {/* Bubble 2: Muse */}
                 <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center font-serif text-xs font-bold text-[#9E784B] shrink-0 mt-0.5">
-                    M
-                  </div>
+                  <MiniMuseMark className="w-7 h-7 mt-0.5" />
                   <div className="bg-[#F9F5F2] text-[#1A1816] p-3.5 rounded-2xl rounded-tl-xs max-w-md text-xs sm:text-sm leading-relaxed">
                     For the white wedding: venue and photographer this month. For the traditional day: attire and catering. I've spotted three photographers in Sandton in your budget — shall I show them?
                   </div>
@@ -197,9 +182,7 @@ export default function MeetMuseSection({ onOpenMuse }) {
                 {customMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'items-start gap-2.5'}`}>
                     {msg.role === 'muse' && (
-                      <div className="w-7 h-7 rounded-full bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center font-serif text-xs font-bold text-[#9E784B] shrink-0 mt-0.5">
-                        M
-                      </div>
+                      <MiniMuseMark className="w-7 h-7 mt-0.5" />
                     )}
                     <div
                       className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed max-w-md ${
