@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Archivo', system-ui, -apple-system, sans-serif;
 
@@ -11,16 +11,14 @@
   --color-hairline: #E6DED6;
 }
 
-@layer base {
-  body {
-    background-color: #F9F5F2;
-    color: #1A1816;
-    font-family: 'Archivo', system-ui, sans-serif;
-  }
+body {
+  background-color: #F9F5F2;
+  color: #1A1816;
+  font-family: 'Archivo', system-ui, sans-serif;
+}
 
-  h1, h2, h3, .font-serif {
-    font-family: 'Playfair Display', Georgia, serif;
-  }
+h1, h2, h3, .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 /* Custom subtle scrollbars */

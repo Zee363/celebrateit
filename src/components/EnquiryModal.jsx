@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function EnquiryModal({ vendor, bride, isOpen, onClose, onSendEnquiry }) {
-  if (!isOpen || !vendor || !bride) return null;
-
-  const celebrations = bride.celebrations || [];
+  const celebrations = bride?.celebrations || [];
   const [selectedCelebrationId, setSelectedCelebrationId] = useState(
     celebrations[0]?.id || ''
   );
@@ -12,8 +10,10 @@ export default function EnquiryModal({ vendor, bride, isOpen, onClose, onSendEnq
     celebrations.find((c) => c.id === selectedCelebrationId) || celebrations[0];
 
   const [messageText, setMessageText] = useState(
-    `Hi ${vendor.businessName}! We love your portfolio and would like to inquire about availability and pricing for our upcoming ${selectedCelebration?.title || 'wedding'}.`
+    `Hi ${vendor?.businessName || ''}! We love your portfolio and would like to inquire about availability and pricing for our upcoming ${selectedCelebration?.title || 'wedding'}.`
   );
+
+  if (!isOpen || !vendor || !bride) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
