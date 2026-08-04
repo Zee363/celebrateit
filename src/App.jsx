@@ -95,9 +95,20 @@ export default function App() {
       async (event, session) => {
         const user = session?.user || null;
         if (user) {
-          const profile = await getProfile(user.id);
-          const role = profile?.role || user.user_metadata?.role || 'BRIDE';
-          const name = profile?.name || user.user_metadata?.name || user.email;
+          const urlParams = new URLSearchParams(window.location.search);
+          const queryRole = urlParams.get('role');
+
+          let profile = await getProfile(user.id);
+          let role = profile?.role || 'BRIDE';
+          let name = profile?.name || user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+
+          if (queryRole && (queryRole === 'BRIDE' || queryRole === 'VENDOR')) {
+            role = queryRole;
+            await supabase
+              .from('profiles')
+              .upsert({ id: user.id, name, email: user.email, role });
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
 
           setCurrentUser({ id: user.id, name, email: user.email, role });
 
