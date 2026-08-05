@@ -110,7 +110,7 @@ export default function BrideDashboard({
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] pt-28 pb-12 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
-      
+
       {/* Header Banner */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6DED6] pb-6">
         <div className="space-y-1">
@@ -130,7 +130,7 @@ export default function BrideDashboard({
             onClick={onOpenMuse}
             className="bg-[#9E784B] text-white px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm hover:bg-[#8A673E] transition-all cursor-pointer shadow-xs flex items-center gap-2"
           >
-            <span>✨</span> Ask Muse
+            <span></span> Ask Muse
           </button>
           <button
             onClick={onOpenDirectory}
@@ -218,11 +218,10 @@ export default function BrideDashboard({
             <button
               key={c.id}
               onClick={() => setActiveTab(c.id)}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                activeTab === c.id
+              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${activeTab === c.id
                   ? 'bg-[#1A1816] text-white shadow-xs'
                   : 'bg-white border border-[#E6DED6] text-[#1A1816]/70 hover:text-[#1A1816]'
-              }`}
+                }`}
             >
               {c.title} ({c.type})
             </button>
@@ -232,7 +231,7 @@ export default function BrideDashboard({
         {/* Active Celebration Workspace */}
         {activeCelebration && (
           <div className="space-y-8">
-            
+
             {/* Celebration Overview Bar */}
             <div className="bg-white border border-[#E6DED6] rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
@@ -259,7 +258,7 @@ export default function BrideDashboard({
 
             {/* Grid layout for Budget & Checklist */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
+
               {/* Left: Budget Lines (7 cols) */}
               <div className="lg:col-span-7 bg-white border border-[#E6DED6] rounded-2xl p-6 space-y-6">
                 <div className="flex items-center justify-between border-b border-[#E6DED6] pb-4">
@@ -333,16 +332,15 @@ export default function BrideDashboard({
                     <div
                       key={item.id}
                       onClick={() => toggleChecklist(activeCelebration.id, item.id)}
-                      className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer ${
-                        item.done
+                      className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer ${item.done
                           ? 'bg-stone-50 border-[#E6DED6] text-stone-400'
                           : 'bg-[#F9F5F2] border-[#E6DED6] text-[#1A1816] hover:border-[#9E784B]'
-                      }`}
+                        }`}
                     >
                       <input
                         type="checkbox"
                         checked={item.done}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         className="mt-0.5 accent-[#9E784B] w-4 h-4 rounded-xs cursor-pointer"
                       />
                       <div className="space-y-0.5 text-xs">
