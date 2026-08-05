@@ -10,8 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "@supabase/supabase-js": "^2.112.0",
     "@tailwindcss/vite": "^4.3.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3"
@@ -29,5 +33,18 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
     "vite": "^8.2.0"
-  }
+  },
+  "description": "CelebrateIT is a production-grade wedding planning platform built around one core idea: **a bride is planning two weddings, not one.** Many South African brides hold a traditional celebration and a white wedding — separate dates, separate cities, each with its own budget, guest list, vendors, and checklist. Every other planning tool assumes a single wedding; CelebrateIT is built specifically for both.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zee363/celebrateit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Zee363/celebrateit/issues"
+  },
+  "homepage": "https://github.com/Zee363/celebrateit#readme"
 }
