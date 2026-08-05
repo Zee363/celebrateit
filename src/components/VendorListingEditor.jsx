@@ -56,7 +56,7 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] py-8 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
-      
+
       {/* Header */}
       <div className="max-w-4xl mx-auto flex items-center justify-between border-b border-[#E6DED6] pb-6">
         <div>
@@ -80,10 +80,10 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
       </div>
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Main Form (8 cols) */}
         <form onSubmit={handleSubmit} className="lg:col-span-8 bg-white border border-[#E6DED6] rounded-2xl p-6 space-y-6 shadow-xs">
-          
+
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[#1A1816]/80">Business Name</label>
             <input
@@ -131,11 +131,10 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
                   type="button"
                   key={choice}
                   onClick={() => setCelebrationsServed(choice)}
-                  className={`py-2 px-3 rounded-lg border text-xs font-semibold text-center transition-all ${
-                    celebrationsServed === choice
+                  className={`py-2 px-3 rounded-lg border text-xs font-semibold text-center transition-all ${celebrationsServed === choice
                       ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#9E784B]'
                       : 'border-[#E6DED6] bg-white text-[#1A1816]/70'
-                  }`}
+                    }`}
                 >
                   {choice}
                 </button>
@@ -151,11 +150,10 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
                   type="button"
                   key={area}
                   onClick={() => toggleArea(area)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                    areas.includes(area)
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${areas.includes(area)
                       ? 'border-[#1A1816] bg-[#1A1816] text-white'
                       : 'border-[#E6DED6] bg-white text-[#1A1816]/70'
-                  }`}
+                    }`}
                 >
                   {area} {areas.includes(area) ? '✓' : '+'}
                 </button>
@@ -212,7 +210,7 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
 
             <div className="p-3.5 rounded-xl border text-xs space-y-1 bg-[#F9F5F2] border-[#E6DED6]">
               <div className="font-semibold text-[#1A1816]">
-                Status: {isLive ? '🟢 LIVE in Search' : '🟡 DRAFT (Needs 70%)'}
+                Status: {isLive ? 'LIVE in Search' : 'DRAFT (Needs 70%)'}
               </div>
               <p className="text-[11px] text-[#1A1816]/70 leading-relaxed">
                 {isLive

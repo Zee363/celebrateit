@@ -4,7 +4,7 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
   const [step, setStep] = useState(1);
   const [brideName, setBrideName] = useState(user?.name || '');
   const [celebrationChoice, setCelebrationChoice] = useState('BOTH'); // TRADITIONAL, WHITE, BOTH
-  
+
   // Dates & Areas
   const [tradDate, setTradDate] = useState('2026-11-14');
   const [tradArea, setTradArea] = useState('Soweto');
@@ -97,7 +97,7 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
       <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-xl relative">
-        
+
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-semibold text-[#1A1816]/70 uppercase tracking-widest">
@@ -151,11 +151,10 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
               <button
                 type="button"
                 onClick={() => setCelebrationChoice('BOTH')}
-                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${
-                  celebrationChoice === 'BOTH'
+                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${celebrationChoice === 'BOTH'
                     ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#1A1816]'
                     : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
-                }`}
+                  }`}
               >
                 <div className="font-serif font-semibold text-sm text-[#9E784B]">Both Weddings</div>
                 <div className="text-xs leading-normal">Traditional Day + White Wedding (Most Popular)</div>
@@ -164,11 +163,10 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
               <button
                 type="button"
                 onClick={() => setCelebrationChoice('TRADITIONAL')}
-                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${
-                  celebrationChoice === 'TRADITIONAL'
+                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${celebrationChoice === 'TRADITIONAL'
                     ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#1A1816]'
                     : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
-                }`}
+                  }`}
               >
                 <div className="font-serif font-semibold text-sm text-[#1A1816]">Traditional Day</div>
                 <div className="text-xs leading-normal">Umphando, Lobola, or Traditional ceremony only</div>
@@ -177,11 +175,10 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
               <button
                 type="button"
                 onClick={() => setCelebrationChoice('WHITE')}
-                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${
-                  celebrationChoice === 'WHITE'
+                className={`p-4 rounded-xl border text-left space-y-2 transition-all cursor-pointer ${celebrationChoice === 'WHITE'
                     ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#1A1816]'
                     : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
-                }`}
+                  }`}
               >
                 <div className="font-serif font-semibold text-sm text-[#1A1816]">White Wedding</div>
                 <div className="text-xs leading-normal">Church & venue reception celebration only</div>
@@ -366,7 +363,7 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
               onClick={handleFinish}
               className="bg-[#9E784B] text-white px-6 py-2.5 rounded-lg text-xs font-semibold hover:bg-[#8A673E] transition-colors cursor-pointer shadow-xs"
             >
-              Open My Dashboard ✨
+              Open My Dashboard
             </button>
           )}
         </div>

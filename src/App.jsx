@@ -554,7 +554,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] text-[#1A1816] font-sans antialiased selection:bg-[#9E784B] selection:text-white flex flex-col justify-between">
-      
+
       <div>
         {/* Navigation Bar */}
         <Navbar
@@ -634,7 +634,7 @@ export default function App() {
         )}
 
         {viewMode === 'messages' && (
-          <MessagesView 
+          <MessagesView
             enquiries={enquiries}
             onBrowseDirectory={() => setViewMode('vendor_directory')}
             onSendReply={handleSendReply}

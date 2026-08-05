@@ -11,7 +11,7 @@ export default function VendorDashboard({
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] pt-28 pb-12 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
-      
+
       {/* Header */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6DED6] pb-6">
         <div>
@@ -46,7 +46,7 @@ export default function VendorDashboard({
 
         {/* Top Metric Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          
+
           <div className="bg-white border border-[#E6DED6] rounded-2xl p-5 space-y-1 shadow-xs">
             <span className="text-[10px] font-semibold tracking-wider uppercase text-[#9E784B]">
               ACTION REQUIRED
@@ -85,7 +85,7 @@ export default function VendorDashboard({
               {vendor.completenessScore}%
             </div>
             <div className="text-xs text-[#1A1816]/60">
-              {vendor.isLive ? '🟢 Live in Directory' : '🟡 Draft'}
+              {vendor.isLive ? 'Live in Directory' : 'Draft'}
             </div>
           </div>
 
