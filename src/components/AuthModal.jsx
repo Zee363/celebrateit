@@ -28,6 +28,7 @@ export default function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
           email: email.trim(),
           password: password,
           options: {
+            emailRedirectTo: `${window.location.origin}`,
             data: {
               name: name.trim(),
               role: role,
