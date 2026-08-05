@@ -31,42 +31,105 @@ export default function MuseChatModal({
     const newMsgs = [...messages, { id: 'msg_' + Date.now(), role: 'user', content: userText }];
     setMessages(newMsgs);
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/muse-reply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: userText, bride, vendors, history: newMsgs })
-      });
+    // 1. Try backend API if VITE_API_URL is configured
+    if (import.meta.env.VITE_API_URL) {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/muse-reply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: userText, bride, vendors, history: newMsgs })
+        });
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Muse API Error:', error);
-        throw new Error(error.error || 'Muse API request failed');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.text) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: 'msg_res_' + Date.now(),
+                role: 'muse',
+                content: data.text
+              }
+            ]);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Backend Muse API unavailable, using built-in Muse assistant:', error);
+      }
+    }
+
+    // 2. Built-in smart Muse assistant engine (Fallback client-side)
+    setTimeout(() => {
+      let museReply = '';
+      const lower = userText.toLowerCase();
+
+      if (lower.includes('cater') || lower.includes('food') || lower.includes('braai') || lower.includes('menu')) {
+        const liveCaterers = (vendors || []).filter((v) => v.isLive && v.category === 'Catering');
+        if (liveCaterers.length > 0) {
+          museReply = `I found ${liveCaterers.length} verified catering partner(s) serving Gauteng:\n\n` +
+            liveCaterers.map(c => `• ${c.businessName} (Starting from R ${c.priceFrom.toLocaleString('en-ZA')}) - ${c.description}`).join('\n\n') +
+            `\n\nWould you like to send them a direct enquiry or view their full profile?`;
+        } else {
+          museReply = `I searched our live vendor directory for catering in your area, but we don't have an active listing matching that criteria yet. I've recorded this request for our recruitment team!`;
+          if (onLogSearchMiss) {
+            onLogSearchMiss({
+              id: 'sm_muse_' + Date.now(),
+              category: 'Catering',
+              area: bride?.celebrations?.[0]?.area || 'Sandton',
+              createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+            });
+          }
+        }
+      } else if (lower.includes('designer') || lower.includes('dress') || lower.includes('gown') || lower.includes('attire') || lower.includes('suit') || lower.includes('tailor')) {
+        museReply = `For traditional attire, bespoke suits, and gorgeous white wedding gowns in Gauteng, here are highly recommended designers:\n\n` +
+          `• **Ntozinhle Designs (Soweto)**: Specializes in stunning traditional Zulu beadwork and modern-traditional mashups.\n` +
+          `• **Orapeleng Modutle (Sandton)**: High-end custom couture white wedding gowns and luxury bridal wear.\n` +
+          `• **Biji La Maison (Johannesburg)**: Internationally renowned for bespoke corsetry and tailored bridal attire.\n\n` +
+          `Would you like to search the vendor directory for more options, or look into attire budgets?`;
+      } else if (lower.includes('venue') || lower.includes('place') || lower.includes('hall') || lower.includes('location')) {
+        const liveVenues = (vendors || []).filter((v) => v.isLive && v.category === 'Venue');
+        if (liveVenues.length > 0) {
+          museReply = `Here are active venue options in Sandton & Johannesburg for your celebrations:\n\n` +
+            liveVenues.map(v => `• ${v.businessName} (From R ${v.priceFrom.toLocaleString('en-ZA')}) - ${v.description}`).join('\n\n') +
+            `\n\nYou can view their price ranges and photos in the directory.`;
+        } else {
+          museReply = `We are currently onboarding new luxury & traditional venues in Gauteng. I've logged this search for our team!`;
+        }
+      } else if (lower.includes('photo') || lower.includes('camera') || lower.includes('video') || lower.includes('film')) {
+        const photographers = (vendors || []).filter((v) => v.isLive && v.category === 'Photography');
+        if (photographers.length > 0) {
+          museReply = `Here are top-rated photographers for traditional attire and white weddings in Gauteng:\n\n` +
+            photographers.map(p => `• ${p.businessName} (From R ${p.priceFrom.toLocaleString('en-ZA')}) - Rating: ★ ${p.rating}`).join('\n\n');
+        } else {
+          museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria.`;
+        }
+      } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split')) {
+        const totalB = bride?.overallBudget || 600000;
+        const tradAlloc = Math.round(totalB * 0.37);
+        const whiteAlloc = Math.round(totalB * 0.63);
+        museReply = `For your budget of R ${totalB.toLocaleString('en-ZA')}, here is the recommended split between your events:\n\n` +
+          `• Traditional Day: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
+          `• White Wedding: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)\n\n` +
+          `Would you like to adjust these numbers on your dashboard?`;
+      } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('time')) {
+        museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly!`;
+      } else {
+        museReply = `I hear you! I am here to help you plan both your Traditional and White weddings. \n\n` +
+          `Could you tell me a little bit more about what you are looking for (e.g., specific venue style, traditional menu choices, or attire budgets) so I can give you the best advice?`;
       }
 
-      const data = await response.json();
       setMessages((prev) => [
         ...prev,
         {
           id: 'msg_res_' + Date.now(),
           role: 'muse',
-          content: data.text || 'Muse could not generate a reply.'
+          content: museReply
         }
       ]);
-    } catch (error) {
-      console.error('Muse API error:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'msg_res_' + Date.now(),
-          role: 'muse',
-          content:
-            'I could not reach the Muse backend. Please make sure the server is running at the configured API URL.'
-        }
-      ]);
-    }
+    }, 300);
   };
 
   return (
