@@ -86,3 +86,4 @@ Below is the complete architectural specification and build brief for CelebrateI
 - `VendorProfile` (userId, businessName, category, areasServed[], celebrationsServed, priceFrom, description, completenessScore, isLive)
 - `Enquiry` (id, brideId, vendorId, celebrationId, status, createdAt)
 - `SearchMiss` (id, category, area, createdAt)
+
