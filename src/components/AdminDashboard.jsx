@@ -15,7 +15,7 @@ export default function AdminDashboard({
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] py-8 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
-      
+
       {/* Header */}
       <div className="max-w-7xl mx-auto flex items-center justify-between border-b border-[#E6DED6] pb-6">
         <div>
@@ -31,7 +31,7 @@ export default function AdminDashboard({
         </div>
 
         <div className="text-right font-serif text-xs text-[#1A1816]">
-          Status: <span className="font-semibold text-emerald-700">Operational 🟢</span>
+          Status: <span className="font-semibold text-emerald-700">Operational</span>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ export default function AdminDashboard({
 
         {/* Top Key Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          
+
           <div className="bg-white border border-[#E6DED6] rounded-2xl p-5 space-y-1 shadow-xs">
             <span className="text-[10px] font-semibold tracking-wider uppercase text-[#9E784B]">
               ENQUIRY VOLUME
@@ -153,9 +153,8 @@ export default function AdminDashboard({
                     <td className="p-3 text-[#1A1816]/80">{v.category}</td>
                     <td className="p-3 text-[#1A1816]/70">{v.areasServed.join(', ')}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                        v.isLive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${v.isLive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
                         {v.isLive ? 'LIVE' : 'PAUSED'}
                       </span>
                     </td>
