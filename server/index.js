@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const museRoutes = require('./routes/muse');
+const emailRoutes = require('./routes/email');
 
 const app = express();
 
@@ -21,6 +22,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use('/api', museRoutes);
+app.use('/api', emailRoutes);
 
 app.use((err, req, res, ) => {
   console.error('Unhandled error', err);

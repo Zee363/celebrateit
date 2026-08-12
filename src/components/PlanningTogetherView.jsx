@@ -48,6 +48,19 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     localStorage.setItem(`celebrateit_tasks_${userId}`, JSON.stringify(tasks));
   }, [tasks, userId]);
 
+  const triggerBackendEmail = async (payload) => {
+    try {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      await fetch(`${backendUrl}/api/send-invitation-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Backend Email API notice:', err);
+    }
+  };
+
   const handleInvite = (e) => {
     e.preventDefault();
     if (!newMemberName.trim() || !newMemberEmail.trim()) return;
@@ -63,7 +76,17 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     setNewMemberEmail('');
     setShowInviteForm(false);
 
-    // Trigger celebratory email mock dispatch modal
+    // Call backend Email API endpoint
+    triggerBackendEmail({
+      to: newMember.email,
+      memberName: newMember.name,
+      memberRole: newMember.role,
+      brideName,
+      taskName: 'Review traditional/white wedding budget split guidelines',
+      dueDate: 'Within 7 days'
+    });
+
+    // Trigger celebratory email preview modal
     setEmailModal({
       isOpen: true,
       memberName: newMember.name,
@@ -90,10 +113,19 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     setNewTaskDate('');
     setShowTaskForm(false);
 
-    // If task is assigned to a member, show the celebratory task email preview
+    // If task is assigned to a member, dispatch email via backend and open preview
     if (newTask.assigneeId) {
       const assignee = teamMembers.find(m => m.id === newTask.assigneeId);
       if (assignee) {
+        triggerBackendEmail({
+          to: assignee.email || 'partner@celebrateit.co.za',
+          memberName: assignee.name,
+          memberRole: assignee.role,
+          brideName,
+          taskName: newTask.title,
+          dueDate: newTask.dueDate || 'flexible date'
+        });
+
         setEmailModal({
           isOpen: true,
           memberName: assignee.name,
