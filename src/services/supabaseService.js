@@ -582,3 +582,107 @@ export async function logSearchMiss(category, area) {
     console.error('Error logging search miss:', error);
   }
 }
+
+// === PLANNING TOGETHER (TEAMS & TASKS) ===
+export async function getPlanningTeam(userId) {
+  const { data, error } = await supabase
+    .from('planning_teams')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching planning team:', error);
+    return [];
+  }
+  return data.map(m => ({
+    id: m.id,
+    name: m.name,
+    role: m.role,
+    email: m.email
+  }));
+}
+
+export async function addPlanningTeamMember(userId, name, role, email) {
+  await assertUserAccess(userId);
+  const { data, error } = await supabase
+    .from('planning_teams')
+    .insert({
+      user_id: userId,
+      name,
+      role,
+      email
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding planning team member:', error);
+    throw error;
+  }
+  return {
+    id: data.id,
+    name: data.name,
+    role: data.role,
+    email: data.email
+  };
+}
+
+export async function getPlanningTasks(userId) {
+  const { data, error } = await supabase
+    .from('planning_tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching planning tasks:', error);
+    return [];
+  }
+  return data.map(t => ({
+    id: t.id,
+    title: t.title,
+    assigneeId: t.assignee_id,
+    dueDate: t.due_date,
+    completed: Boolean(t.completed)
+  }));
+}
+
+export async function addPlanningTask(userId, title, assigneeId, dueDate) {
+  await assertUserAccess(userId);
+  const { data, error } = await supabase
+    .from('planning_tasks')
+    .insert({
+      user_id: userId,
+      title,
+      assignee_id: assigneeId || null,
+      due_date: dueDate || null,
+      completed: false
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding planning task:', error);
+    throw error;
+  }
+  return {
+    id: data.id,
+    title: data.title,
+    assigneeId: data.assignee_id,
+    dueDate: data.due_date,
+    completed: Boolean(data.completed)
+  };
+}
+
+export async function updatePlanningTaskStatus(taskId, completed) {
+  const { error } = await supabase
+    .from('planning_tasks')
+    .update({ completed })
+    .eq('id', taskId);
+
+  if (error) {
+    console.error('Error updating planning task status:', error);
+    throw error;
+  }
+}

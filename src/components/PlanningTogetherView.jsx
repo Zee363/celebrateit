@@ -1,4 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import {
+  getPlanningTeam,
+  addPlanningTeamMember,
+  getPlanningTasks,
+  addPlanningTask,
+  updatePlanningTaskStatus
+} from '../services/supabaseService';
+
+const isUuid = (str) => {
+  if (!str) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
 
 export default function PlanningTogetherView({ currentUser, bride }) {
   const userId = currentUser?.id || currentUser?.email || 'default_user';
@@ -34,11 +47,25 @@ export default function PlanningTogetherView({ currentUser, bride }) {
   });
 
   useEffect(() => {
-    const savedTeam = localStorage.getItem(`celebrateit_team_${userId}`);
-    const savedTasks = localStorage.getItem(`celebrateit_tasks_${userId}`);
-    setTeamMembers(savedTeam ? JSON.parse(savedTeam) : []);
-    setTasks(savedTasks ? JSON.parse(savedTasks) : []);
-  }, [userId]);
+    const loadDbData = async () => {
+      if (isUuid(currentUser?.id)) {
+        try {
+          const dbTeam = await getPlanningTeam(currentUser.id);
+          const dbTasks = await getPlanningTasks(currentUser.id);
+          if (dbTeam && dbTeam.length > 0) setTeamMembers(dbTeam);
+          if (dbTasks && dbTasks.length > 0) setTasks(dbTasks);
+          return;
+        } catch (e) {
+          console.warn('Fallback to local storage for planning team:', e);
+        }
+      }
+      const savedTeam = localStorage.getItem(`celebrateit_team_${userId}`);
+      const savedTasks = localStorage.getItem(`celebrateit_tasks_${userId}`);
+      setTeamMembers(savedTeam ? JSON.parse(savedTeam) : []);
+      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
+    };
+    loadDbData();
+  }, [currentUser, userId]);
 
   useEffect(() => {
     localStorage.setItem(`celebrateit_team_${userId}`, JSON.stringify(teamMembers));
@@ -61,16 +88,34 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     }
   };
 
-  const handleInvite = (e) => {
+  const handleInvite = async (e) => {
     e.preventDefault();
     if (!newMemberName.trim() || !newMemberEmail.trim()) return;
-    const newMember = { 
+
+    let newMember = { 
       id: 'tm_' + Date.now(), 
       name: newMemberName.trim(), 
       role: newMemberRole.trim() || 'Planning Committee Helper',
       email: newMemberEmail.trim()
     };
-    setTeamMembers([...teamMembers, newMember]);
+
+    if (isUuid(currentUser?.id)) {
+      try {
+        const dbMember = await addPlanningTeamMember(
+          currentUser.id,
+          newMember.name,
+          newMember.role,
+          newMember.email
+        );
+        if (dbMember && dbMember.id) {
+          newMember = dbMember;
+        }
+      } catch (err) {
+        console.warn('Could not persist team member to DB, using local state:', err);
+      }
+    }
+
+    setTeamMembers(prev => [...prev, newMember]);
     setNewMemberName('');
     setNewMemberRole('');
     setNewMemberEmail('');
@@ -97,17 +142,35 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     });
   };
 
-  const handleAddTask = (e) => {
+  const handleAddTask = async (e) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    const newTask = {
+
+    let newTask = {
       id: 'tsk_' + Date.now(),
       title: newTaskTitle.trim(),
       assigneeId: newTaskAssignee,
       dueDate: newTaskDate,
       completed: false
     };
-    setTasks([...tasks, newTask]);
+
+    if (isUuid(currentUser?.id)) {
+      try {
+        const dbTask = await addPlanningTask(
+          currentUser.id,
+          newTask.title,
+          newTask.assigneeId,
+          newTask.dueDate
+        );
+        if (dbTask && dbTask.id) {
+          newTask = dbTask;
+        }
+      } catch (err) {
+        console.warn('Could not persist task to DB, using local state:', err);
+      }
+    }
+
+    setTasks(prev => [...prev, newTask]);
     setNewTaskTitle('');
     setNewTaskAssignee('');
     setNewTaskDate('');
@@ -138,7 +201,17 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     }
   };
 
-  const toggleTask = (taskId) => {
+  const toggleTask = async (taskId) => {
+    const targetTask = tasks.find(t => t.id === taskId);
+    const newCompleted = targetTask ? !targetTask.completed : false;
+
+    if (isUuid(currentUser?.id) && isUuid(taskId)) {
+      try {
+        await updatePlanningTaskStatus(taskId, newCompleted);
+      } catch (err) {
+        console.warn('Could not update task status in DB:', err);
+      }
+    }
     setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
   };
 
