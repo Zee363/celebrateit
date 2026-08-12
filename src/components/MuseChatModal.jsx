@@ -13,13 +13,7 @@ export default function MuseChatModal({
   const userName = currentUser?.name || bride?.name || 'there';
   const celebrationsCount = bride?.celebrations?.length || 2;
 
-  const [messages, setMessages] = useState([
-    {
-      id: 'm_init',
-      role: 'muse',
-      content: `Hello ${userName}! I'm Muse, your personal wedding planning assistant. I already know about your ${celebrationsCount} celebration setup. How can I help you balance budgets, dates, or find local vendors today?`
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
 
   const [inputVal, setInputVal] = useState('');
 
@@ -78,6 +72,32 @@ export default function MuseChatModal({
           `• Bespoke traditional attire, beadwork, and couture designers\n` +
           `• Planning budget splits and coordinating timeline dates\n\n` +
           `What aspect of your dual celebrations would you like to discuss today?`;
+      } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split') || lower.includes('money') || (lower.includes('r') && /\d+/.test(lower))) {
+        // Extract budget digits dynamically (e.g. R60000, 60,000, R60 000)
+        const budgetMatch = lower.replace(/[,.\s]/g, '').match(/r?(\d+)/);
+        let customBudget = bride?.overallBudget || 600000;
+        if (budgetMatch) {
+          const parsed = parseInt(budgetMatch[1], 10);
+          if (!isNaN(parsed) && parsed >= 500) {
+            customBudget = parsed;
+          }
+        }
+        
+        const tradAlloc = Math.round(customBudget * 0.37);
+        const whiteAlloc = Math.round(customBudget * 0.63);
+
+        let details = "";
+        if (lower.includes('lobola') || lower.includes('attire') || lower.includes('deco') || lower.includes('decor')) {
+          details = `\n\nFor your specific query about lobola, attire, and decor/deco:\n` +
+            `• **Lobola & Traditional Attire**: Fit comfortably inside your Traditional Day allocation (R ${tradAlloc.toLocaleString('en-ZA')}). We recommend allocating around R15,000 - R20,000 for bespoke attire & beadwork, leaving R10,000 for home marquee/tents & decor.\n` +
+            `• **Decor & Styling**: For a white wedding reception, we recommend reserving around 10-15% of your White Wedding budget (R ${Math.round(whiteAlloc * 0.12).toLocaleString('en-ZA')}) for luxury floral designs, lighting, and table styling.`;
+        }
+
+        museReply = `For your budget of R ${customBudget.toLocaleString('en-ZA')}, here is the recommended split between your events:\n\n` +
+          `• **Traditional Day**: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
+          `• **White Wedding**: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)` +
+          details +
+          `\n\nWould you like to adjust these numbers on your dashboard?`;
       } else if (lower.includes('cater') || lower.includes('food') || lower.includes('braai') || lower.includes('menu') || lower.includes('eat')) {
         const liveCaterers = (vendors || []).filter((v) => v.isLive && v.category === 'Catering');
         if (liveCaterers.length > 0) {
@@ -120,14 +140,6 @@ export default function MuseChatModal({
         } else {
           museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria. Typically, Thando M. Photography (from R18 000) captures rich traditional colors beautifully.`;
         }
-      } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split') || lower.includes('money')) {
-        const totalB = bride?.overallBudget || 600000;
-        const tradAlloc = Math.round(totalB * 0.37);
-        const whiteAlloc = Math.round(totalB * 0.63);
-        museReply = `For your budget of R ${totalB.toLocaleString('en-ZA')}, here is the recommended split between your events:\n\n` +
-          `• **Traditional Day**: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
-          `• **White Wedding**: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)\n\n` +
-          `Would you like to adjust these numbers on your dashboard?`;
       } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('time') || lower.includes('spacing')) {
         museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly! Let me know if you want to inspect your target dates.`;
       } else if (lower.includes('lobola') || lower.includes('elder') || lower.includes('agreement')) {
@@ -177,24 +189,54 @@ export default function MuseChatModal({
 
         {/* Message Trajectory */}
         <div className="flex-1 p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex ${m.role === 'user' ? 'justify-end' : 'items-start gap-3'}`}
-            >
-              {m.role === 'muse' && (
-                <MiniMuseMark className="w-8 h-8 shrink-0 mt-1" />
-              )}
-              <div
-                className={`p-4 rounded-2xl max-w-lg leading-relaxed whitespace-pre-line ${m.role === 'user'
-                    ? 'bg-[#1A1816] text-white rounded-tr-xs ml-auto'
-                    : 'bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] rounded-tl-xs'
-                  }`}
-              >
-                {m.content}
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-6">
+              <MiniMuseMark className="w-16 h-16 opacity-80" />
+              <div>
+                <h4 className="font-serif text-xl font-medium text-[#1A1816]">Ask Muse</h4>
+                <p className="text-xs text-[#1A1816]/70 mt-1 max-w-sm">
+                  Your South African wedding planning expert. Get instant, tailored suggestions for your celebrations.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 max-w-md w-full justify-center">
+                <button
+                  onClick={() => {
+                    setInputVal("How should I split my budget of R60,000 between traditional and white weddings?");
+                  }}
+                  className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
+                >
+                  💡 Split R60,000 budget
+                </button>
+                <button
+                  onClick={() => {
+                    setInputVal("What spacing should I leave between my traditional and white wedding dates?");
+                  }}
+                  className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
+                >
+                  📅 Spacing between dates
+                </button>
               </div>
             </div>
-          ))}
+          ) : (
+            messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'items-start gap-3'}`}
+              >
+                {m.role === 'muse' && (
+                  <MiniMuseMark className="w-8 h-8 shrink-0 mt-1" />
+                )}
+                <div
+                  className={`p-4 rounded-2xl max-w-lg leading-relaxed whitespace-pre-line ${m.role === 'user'
+                      ? 'bg-[#1A1816] text-white rounded-tr-xs ml-auto'
+                      : 'bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] rounded-tl-xs'
+                    }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Input Footer */}

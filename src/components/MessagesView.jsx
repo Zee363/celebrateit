@@ -143,7 +143,9 @@ export default function MessagesView({ enquiries, onBrowseDirectory, onSendReply
                             : 'bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] rounded-tl-xs'
                         }`}
                       >
-                        <div className="font-semibold text-[10px] uppercase tracking-wider opacity-75 mb-1.5">{m.sender}</div>
+                        {m.sender !== (currentRole === 'VENDOR' ? activeEnquiry.vendorName : activeEnquiry.brideName) && (
+                          <div className="font-semibold text-[10px] uppercase tracking-wider opacity-75 mb-1.5">{m.sender}</div>
+                        )}
                         <div className="leading-relaxed">{m.body}</div>
                         <div className="text-[10px] opacity-60 text-right mt-2">{m.createdAt}</div>
                       </div>

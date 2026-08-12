@@ -727,7 +727,7 @@ export default function App() {
         )}
 
         {viewMode === 'planning_together' && (
-          <PlanningTogetherView currentUser={currentUser} />
+          <PlanningTogetherView currentUser={currentUser} bride={bride} />
         )}
       </div>
 
