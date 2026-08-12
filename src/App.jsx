@@ -58,6 +58,26 @@ const isUuid = (str) => {
   return uuidRegex.test(str);
 };
 
+const validateRoleAccess = (view, user) => {
+  const role = user?.role;
+  if (view === 'admin_dashboard') {
+    return role === 'ADMIN';
+  }
+  if (view === 'vendor_dashboard') {
+    return role === 'VENDOR';
+  }
+  if (view === 'bride_dashboard') {
+    return role === 'BRIDE';
+  }
+  if (view === 'planning_together' || view === 'messages') {
+    return !!role; // Must be authenticated
+  }
+  if (view === 'landing' || view === 'vendor_directory') {
+    return true;
+  }
+  return false;
+};
+
 export default function App() {
   // Navigation & View Mode
   const [viewMode, setViewMode] = useState(() => {
@@ -86,10 +106,56 @@ export default function App() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [museOpen, setMuseOpen] = useState(false);
 
-  // Save state changes to localStorage for mock persistence
+  // Sync state to URL hash
   useEffect(() => {
     localStorage.setItem('celebrateit_viewMode', viewMode);
+    if (window.location.hash !== `#/${viewMode}`) {
+      window.location.hash = `#/${viewMode}`;
+    }
   }, [viewMode]);
+
+  // Sync hash to state with role protection
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const targetView = hash.replace(/^#\/?/, '');
+      if (targetView && targetView !== viewMode) {
+        const allowed = validateRoleAccess(targetView, currentUser);
+        if (allowed) {
+          setViewMode(targetView);
+        } else {
+          // Revert hash if unauthorized
+          const fallbackHash = currentUser?.role 
+            ? (currentUser.role === 'BRIDE' ? '#/bride_dashboard' : currentUser.role === 'VENDOR' ? '#/vendor_dashboard' : '#/admin_dashboard') 
+            : '#/landing';
+          window.location.hash = fallbackHash;
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Initial load check
+    const initialView = window.location.hash.replace(/^#\/?/, '');
+    if (initialView) {
+      const allowed = validateRoleAccess(initialView, currentUser);
+      if (allowed) {
+        setViewMode(initialView);
+      } else {
+        const fallback = currentUser?.role 
+          ? (currentUser.role === 'BRIDE' ? 'bride_dashboard' : currentUser.role === 'VENDOR' ? 'vendor_dashboard' : 'admin_dashboard') 
+          : 'landing';
+        setViewMode(fallback);
+        window.location.hash = `#/${fallback}`;
+      }
+    } else {
+      window.location.hash = `#/${viewMode}`;
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [currentUser, viewMode]);
 
   useEffect(() => {
     if (currentUser) {

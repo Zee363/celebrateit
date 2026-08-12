@@ -65,6 +65,26 @@ export function mapEnquiryFromDb(e) {
   };
 }
 
+// Helper: Enforce that the authenticated user is either the owner or an admin
+async function assertUserAccess(targetUserId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Access Denied: Unauthenticated');
+  }
+  if (user.id === targetUserId) {
+    return true;
+  }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  if (profile?.role === 'ADMIN') {
+    return true;
+  }
+  throw new Error('Access Denied: Unauthorized access to user data');
+}
+
 // === PROFILES ===
 export async function getProfile(userId) {
   const { data, error } = await supabase
@@ -95,6 +115,7 @@ export async function getVendors() {
 }
 
 export async function saveVendorProfile(vendor) {
+  await assertUserAccess(vendor.id);
   const dbData = mapVendorToDb(vendor);
   const { data, error } = await supabase
     .from('vendor_profiles')
@@ -111,6 +132,7 @@ export async function saveVendorProfile(vendor) {
 
 // === BRIDES / WEDDINGS ===
 export async function getBrideData(brideId) {
+  await assertUserAccess(brideId);
   // 1. Fetch Profile
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
@@ -211,6 +233,7 @@ export async function getBrideData(brideId) {
 }
 
 export async function saveBrideOnboarding(brideId, overallBudget, celebrations) {
+  await assertUserAccess(brideId);
   // 1. Create wedding
   const { data: wedding, error: weddingErr } = await supabase
     .from('weddings')
@@ -453,6 +476,9 @@ export async function deleteBudgetLine(lineId) {
 
 // === ENQUIRIES ===
 export async function getEnquiries(userId, role) {
+  if (role !== 'ADMIN') {
+    await assertUserAccess(userId);
+  }
   const column = role === 'BRIDE' ? 'bride_id' : 'vendor_id';
   const { data, error } = await supabase
     .from('enquiries')
@@ -523,6 +549,13 @@ export async function updateEnquiryMessages(enquiryId, messages) {
 
 // === SEARCH MISSES ===
 export async function getSearchMisses() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'ADMIN') {
+    console.error('Access Denied: Admin role context violation');
+    return [];
+  }
   const { data, error } = await supabase
     .from('search_misses')
     .select('*')
