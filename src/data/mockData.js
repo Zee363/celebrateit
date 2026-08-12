@@ -97,8 +97,8 @@ export const INITIAL_VENDORS = [
 
 export const INITIAL_BRIDE = {
   id: 'b1',
-  name: 'Nomsa',
-  email: 'nomsa@example.com',
+  name: '',
+  email: '',
   role: 'BRIDE',
   overallBudget: 600000,
   celebrations: [

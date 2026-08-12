@@ -10,29 +10,6 @@ export default function Footer({ onSwitchRole }) {
           <span>© 2026 Celebrate IT. Made with care in South Africa.</span>
         </div>
 
-        {/* Development & Role Quick Switchers */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => onSwitchRole('BRIDE')}
-            className="hover:text-[#1A1816] hover:underline underline-offset-4 cursor-pointer"
-          >
-            Bride Portal
-          </button>
-          <span className="text-[#E6DED6]">•</span>
-          <button
-            onClick={() => onSwitchRole('VENDOR')}
-            className="hover:text-[#1A1816] hover:underline underline-offset-4 cursor-pointer"
-          >
-            Vendor Hub
-          </button>
-          <span className="text-[#E6DED6]">•</span>
-          <button
-            onClick={() => onSwitchRole('ADMIN')}
-            className="hover:text-[#1A1816] hover:underline underline-offset-4 cursor-pointer"
-          >
-            Admin View
-          </button>
-        </div>
       </div>
     </footer>
   );

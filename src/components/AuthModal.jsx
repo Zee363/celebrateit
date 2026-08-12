@@ -167,11 +167,11 @@ export default function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
               <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1816]/70">
                 I am joining as a
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setRole('BRIDE')}
-                  className={`py-2.5 px-3 rounded-lg border text-xs font-semibold text-center transition-all ${
+                  className={`py-2.5 px-2 rounded-lg border text-[10px] font-semibold text-center transition-all ${
                     role === 'BRIDE'
                       ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#9E784B]'
                       : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
@@ -182,13 +182,24 @@ export default function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
                 <button
                   type="button"
                   onClick={() => setRole('VENDOR')}
-                  className={`py-2.5 px-3 rounded-lg border text-xs font-semibold text-center transition-all ${
+                  className={`py-2.5 px-2 rounded-lg border text-[10px] font-semibold text-center transition-all ${
                     role === 'VENDOR'
                       ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#9E784B]'
                       : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
                   }`}
                 >
-                  Wedding Vendor
+                  Vendor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('ADMIN')}
+                  className={`py-2.5 px-2 rounded-lg border text-[10px] font-semibold text-center transition-all ${
+                    role === 'ADMIN'
+                      ? 'border-[#9E784B] bg-[#9E784B]/10 text-[#9E784B]'
+                      : 'border-[#E6DED6] bg-white text-[#1A1816]/70 hover:border-stone-400'
+                  }`}
+                >
+                  Admin
                 </button>
               </div>
             </div>

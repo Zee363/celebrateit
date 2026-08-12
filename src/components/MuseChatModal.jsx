@@ -7,13 +7,17 @@ export default function MuseChatModal({
   bride,
   vendors,
   onLogSearchMiss,
-  onOpenVendorProfile
+  onOpenVendorProfile,
+  currentUser
 }) {
+  const userName = currentUser?.name || bride?.name || 'there';
+  const celebrationsCount = bride?.celebrations?.length || 2;
+
   const [messages, setMessages] = useState([
     {
       id: 'm_init',
       role: 'muse',
-      content: `Hello ${bride?.name || 'there'}! I'm Muse, your personal wedding planning assistant. I already know about your ${bride?.celebrations?.length || 1} celebration setup. How can I help you balance budgets, dates, or find local vendors today?`
+      content: `Hello ${userName}! I'm Muse, your personal wedding planning assistant. I already know about your ${celebrationsCount} celebration setup. How can I help you balance budgets, dates, or find local vendors today?`
     }
   ]);
 
@@ -66,14 +70,23 @@ export default function MuseChatModal({
       let museReply = '';
       const lower = userText.toLowerCase();
 
-      if (lower.includes('cater') || lower.includes('food') || lower.includes('braai') || lower.includes('menu')) {
+      if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('greetings')) {
+        museReply = `Hello ${userName}! I am Muse, your dedicated South African wedding planning expert. I am here to help you plan both your Traditional Day and your White Wedding.\n\n` +
+          `You can ask me about:\n` +
+          `• Gauteng wedding venues (Sandton, Soweto, Pretoria)\n` +
+          `• Traditional catering, menus, and spit braai suppliers\n` +
+          `• Bespoke traditional attire, beadwork, and couture designers\n` +
+          `• Planning budget splits and coordinating timeline dates\n\n` +
+          `What aspect of your dual celebrations would you like to discuss today?`;
+      } else if (lower.includes('cater') || lower.includes('food') || lower.includes('braai') || lower.includes('menu') || lower.includes('eat')) {
         const liveCaterers = (vendors || []).filter((v) => v.isLive && v.category === 'Catering');
         if (liveCaterers.length > 0) {
           museReply = `I found ${liveCaterers.length} verified catering partner(s) serving Gauteng:\n\n` +
-            liveCaterers.map(c => `• ${c.businessName} (Starting from R ${c.priceFrom.toLocaleString('en-ZA')}) - ${c.description}`).join('\n\n') +
-            `\n\nWould you like to send them a direct enquiry or view their full profile?`;
+            liveCaterers.map(c => `• **${c.businessName}** (Starting from R ${c.priceFrom.toLocaleString('en-ZA')}) - ${c.description}`).join('\n\n') +
+            `\n\nFor a traditional day, authentic spit braais and sides are highly popular. Let me know if you would like me to connect you with them!`;
         } else {
-          museReply = `I searched our live vendor directory for catering in your area, but we don't have an active listing matching that criteria yet. I've recorded this request for our recruitment team!`;
+          museReply = `I searched our live vendor directory for catering in your area, but we don't have an active listing matching that criteria yet. I've recorded this request for our recruitment team!\n\n` +
+            `Generally, we recommend reserving R25 000 - R40 000 of your traditional budget for catering (like Ubuntu Culinary Art & Catering) when hosting around 180 guests.`;
           if (onLogSearchMiss) {
             onLogSearchMiss({
               id: 'sm_muse_' + Date.now(),
@@ -83,7 +96,7 @@ export default function MuseChatModal({
             });
           }
         }
-      } else if (lower.includes('designer') || lower.includes('dress') || lower.includes('gown') || lower.includes('attire') || lower.includes('suit') || lower.includes('tailor')) {
+      } else if (lower.includes('designer') || lower.includes('dress') || lower.includes('gown') || lower.includes('attire') || lower.includes('suit') || lower.includes('tailor') || lower.includes('beadwork')) {
         museReply = `For traditional attire, bespoke suits, and gorgeous white wedding gowns in Gauteng, here are highly recommended designers:\n\n` +
           `• **Ntozinhle Designs (Soweto)**: Specializes in stunning traditional Zulu beadwork and modern-traditional mashups.\n` +
           `• **Orapeleng Modutle (Sandton)**: High-end custom couture white wedding gowns and luxury bridal wear.\n` +
@@ -93,32 +106,40 @@ export default function MuseChatModal({
         const liveVenues = (vendors || []).filter((v) => v.isLive && v.category === 'Venue');
         if (liveVenues.length > 0) {
           museReply = `Here are active venue options in Sandton & Johannesburg for your celebrations:\n\n` +
-            liveVenues.map(v => `• ${v.businessName} (From R ${v.priceFrom.toLocaleString('en-ZA')}) - ${v.description}`).join('\n\n') +
+            liveVenues.map(v => `• **${v.businessName}** (From R ${v.priceFrom.toLocaleString('en-ZA')}) - ${v.description}`).join('\n\n') +
             `\n\nYou can view their price ranges and photos in the directory.`;
         } else {
-          museReply = `We are currently onboarding new luxury & traditional venues in Gauteng. I've logged this search for our team!`;
+          museReply = `We are currently onboarding new luxury & traditional venues in Gauteng. I've logged this search for our team!\n\n` +
+            `Generally, the White Wedding venue package (like The Greenhouse Sandton) represents about 45% of the overall budget, starting around R45 000.`;
         }
       } else if (lower.includes('photo') || lower.includes('camera') || lower.includes('video') || lower.includes('film')) {
         const photographers = (vendors || []).filter((v) => v.isLive && v.category === 'Photography');
         if (photographers.length > 0) {
           museReply = `Here are top-rated photographers for traditional attire and white weddings in Gauteng:\n\n` +
-            photographers.map(p => `• ${p.businessName} (From R ${p.priceFrom.toLocaleString('en-ZA')}) - Rating: ★ ${p.rating}`).join('\n\n');
+            photographers.map(p => `• **${p.businessName}** (From R ${p.priceFrom.toLocaleString('en-ZA')}) - Rating: ★ ${p.rating}`).join('\n\n');
         } else {
-          museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria.`;
+          museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria. Typically, Thando M. Photography (from R18 000) captures rich traditional colors beautifully.`;
         }
-      } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split')) {
+      } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split') || lower.includes('money')) {
         const totalB = bride?.overallBudget || 600000;
         const tradAlloc = Math.round(totalB * 0.37);
         const whiteAlloc = Math.round(totalB * 0.63);
         museReply = `For your budget of R ${totalB.toLocaleString('en-ZA')}, here is the recommended split between your events:\n\n` +
-          `• Traditional Day: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
-          `• White Wedding: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)\n\n` +
+          `• **Traditional Day**: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
+          `• **White Wedding**: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)\n\n` +
           `Would you like to adjust these numbers on your dashboard?`;
-      } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('time')) {
-        museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly!`;
+      } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('time') || lower.includes('spacing')) {
+        museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly! Let me know if you want to inspect your target dates.`;
+      } else if (lower.includes('lobola') || lower.includes('elder') || lower.includes('agreement')) {
+        museReply = `Traditional lobola proceedings and negotiations are foundational. We recommend starting family elder alignments at least 2 to 3 months before your traditional celebration. Make sure you set a dedicated budget line for family gifts and logistics!`;
+      } else if (lower.includes('help') || lower.includes('features') || lower.includes('what can you do')) {
+        museReply = `I can walk you through the planning details of your dual celebrations. Ask me questions such as:\n\n` +
+          `1. "How do I split my budget?"\n` +
+          `2. "Where can I find a traditional catering supplier?"\n` +
+          `3. "What spacing should I leave between my dates?"\n` +
+          `4. "Can you recommend a traditional dress designer?"`;
       } else {
-        museReply = `I hear you! I am here to help you plan both your Traditional and White weddings. \n\n` +
-          `Could you tell me a little bit more about what you are looking for (e.g., specific venue style, traditional menu choices, or attire budgets) so I can give you the best advice?`;
+        museReply = `I understand! I'm here to support your dual-wedding planning. Could you specify if you are asking about budgeting ratios, finding a caterer/venue in Gauteng, attire fittings, or timeline date clash checks?`;
       }
 
       setMessages((prev) => [

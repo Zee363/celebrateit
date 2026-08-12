@@ -201,7 +201,7 @@ export default function App() {
           let role = profile?.role || 'BRIDE';
           let name = profile?.name || user.user_metadata?.full_name || user.user_metadata?.name || user.email;
 
-          if (queryRole && (queryRole === 'BRIDE' || queryRole === 'VENDOR')) {
+          if (queryRole && (queryRole === 'BRIDE' || queryRole === 'VENDOR' || queryRole === 'ADMIN')) {
             role = queryRole;
             await supabase
               .from('profiles')
@@ -216,15 +216,24 @@ export default function App() {
             if (brideData && brideData.weddingId) {
               setBride(brideData);
               setViewMode('bride_dashboard');
+              setOnboardingOpen(false);
             } else {
-              setBride({
-                id: user.id,
-                name,
-                email: user.email,
-                role: 'BRIDE',
-                celebrations: []
-              });
-              setOnboardingOpen(true);
+              // Local storage fallback so onboarding doesn't repeat on refresh
+              const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
+              if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
+                setBride(localBride);
+                setViewMode('bride_dashboard');
+                setOnboardingOpen(false);
+              } else {
+                setBride({
+                  id: user.id,
+                  name,
+                  email: user.email,
+                  role: 'BRIDE',
+                  celebrations: []
+                });
+                setOnboardingOpen(true);
+              }
             }
             const dbEnqs = await getEnquiries(user.id, 'BRIDE');
             setEnquiries(dbEnqs);
@@ -276,8 +285,9 @@ export default function App() {
     setCurrentUser(user);
     if (!isSupabaseConfigured) {
       if (user.role === 'BRIDE') {
-        // If bride already has celebrations configured, bypass onboarding
-        if (bride && bride.celebrations && bride.celebrations.length > 0) {
+        const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
+        if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
+          setBride(localBride);
           setOnboardingOpen(false);
           setViewMode('bride_dashboard');
         } else {
@@ -291,14 +301,21 @@ export default function App() {
       return;
     }
 
-    // Let useEffect handle real Supabase role transitions, but quick visual fallbacks
     if (user.role === 'BRIDE') {
       const brideData = await getBrideData(user.id);
       if (brideData && brideData.weddingId) {
         setBride(brideData);
         setViewMode('bride_dashboard');
+        setOnboardingOpen(false);
       } else {
-        setOnboardingOpen(true);
+        const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
+        if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
+          setBride(localBride);
+          setOnboardingOpen(false);
+          setViewMode('bride_dashboard');
+        } else {
+          setOnboardingOpen(true);
+        }
       }
     } else if (user.role === 'VENDOR') {
       setViewMode('vendor_dashboard');
@@ -759,6 +776,7 @@ export default function App() {
         vendors={vendors}
         onLogSearchMiss={handleLogSearchMiss}
         onOpenVendorProfile={handleSelectVendor}
+        currentUser={currentUser}
       />
 
       {/* Footer */}
