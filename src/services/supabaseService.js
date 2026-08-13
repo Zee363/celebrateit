@@ -135,6 +135,34 @@ export async function saveVendorProfile(vendor) {
   return mapVendorFromDb(data);
 }
 
+export async function deleteVendorProfile(vendorId) {
+  // Only admins can delete vendor profiles
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Access Denied: Unauthenticated');
+  }
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (profile?.role !== 'ADMIN') {
+    throw new Error('Access Denied: Only admins can delete vendor profiles');
+  }
+
+  const { error } = await supabase
+    .from('vendor_profiles')
+    .delete()
+    .eq('id', vendorId);
+
+  if (error) {
+    console.error('Error deleting vendor profile:', error);
+    throw error;
+  }
+}
+
 // === BRIDES / WEDDINGS ===
 export async function getBrideData(brideId) {
   await assertUserAccess(brideId);
@@ -691,3 +719,56 @@ export async function updatePlanningTaskStatus(taskId, completed) {
     throw error;
   }
 }
+
+// === DATABASE CLEANUP (ADMIN ONLY) ===
+export async function deleteAllDatabaseData() {
+  // Verify admin access
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Access Denied: Unauthenticated');
+  }
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (profile?.role !== 'ADMIN') {
+    throw new Error('Access Denied: Only admins can clear the database');
+  }
+
+  try {
+    // Delete in order of foreign key dependencies (child tables first)
+    const tables = [
+      'budget_lines',
+      'checklist_items',
+      'planning_tasks',
+      'planning_teams',
+      'enquiries',
+      'search_misses',
+      'celebrations',
+      'weddings',
+      'vendor_profiles',
+      'profiles'
+    ];
+
+    for (const table of tables) {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .neq('id', ''); // Delete all rows (neq ensures it doesn't error on empty table)
+
+      if (error) {
+        console.error(`Error deleting from ${table}:`, error);
+        throw error;
+      }
+    }
+
+    return { success: true, message: 'Database cleared successfully' };
+  } catch (err) {
+    console.error('Error clearing database:', err);
+    throw err;
+  }
+}
+
