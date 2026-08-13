@@ -37,6 +37,7 @@ import {
   saveVendorProfile,
   getBrideData,
   saveBrideOnboarding,
+  updateCelebrationDetails,
   toggleChecklistItem,
   addChecklistItem,
   addBudgetLine,
@@ -548,7 +549,17 @@ export default function App() {
       });
       setViewMode('vendor_dashboard');
     } catch (err) {
-      console.error('Error saving vendor profile:', err);
+      console.error('Error saving vendor profile, applying fallback update:', err);
+      setVendors((prev) => {
+        const idx = prev.findIndex((v) => v.id === updatedVendor.id);
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = updatedVendor;
+          return copy;
+        }
+        return [...prev, updatedVendor];
+      });
+      setViewMode('vendor_dashboard');
     }
   };
 
@@ -584,6 +595,26 @@ export default function App() {
       for (const cOld of bride.celebrations) {
         const cNew = updatedBride.celebrations.find(c => c.id === cOld.id);
         if (!cNew) continue;
+
+        // 0. Check for celebration details updated (guest count, title, date, area, budget)
+        if (
+          cOld.guestCount !== cNew.guestCount ||
+          cOld.title !== cNew.title ||
+          cOld.date !== cNew.date ||
+          cOld.area !== cNew.area ||
+          cOld.budget !== cNew.budget
+        ) {
+          if (isUuid(cNew.id)) {
+            await updateCelebrationDetails(
+              cNew.id,
+              cNew.title,
+              cNew.date,
+              cNew.area,
+              cNew.guestCount,
+              cNew.budget
+            );
+          }
+        }
 
         // 1. Check for checklists toggled
         for (const itemNew of cNew.checklist) {
@@ -685,6 +716,7 @@ export default function App() {
             enquiries={enquiries}
             onOpenListingEditor={() => setViewMode('vendor_editor')}
             onOpenInbox={() => setInboxOpen(true)}
+            onMarkBooked={handleMarkBooked}
           />
         )}
 

@@ -13,11 +13,55 @@ export default function BrideDashboard({
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [showAddChecklistModal, setShowAddChecklistModal] = useState(false);
 
+  // Edit celebration modal state
+  const [showEditCelebrationModal, setShowEditCelebrationModal] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editArea, setEditArea] = useState('');
+  const [editGuestCount, setEditGuestCount] = useState('');
+  const [editBudget, setEditBudget] = useState('');
+
   // New item state
   const [newCategory, setNewCategory] = useState('');
   const [newPlanned, setNewPlanned] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
+
+  const handleOpenEditCelebration = (c) => {
+    const celeb = c || activeCelebration;
+    if (!celeb) return;
+    setEditTitle(celeb.title || '');
+    setEditDate(celeb.date || '');
+    setEditArea(celeb.area || '');
+    setEditGuestCount(celeb.guestCount || 100);
+    setEditBudget(celeb.budget || 200000);
+    setShowEditCelebrationModal(true);
+  };
+
+  const handleSaveEditCelebration = (e) => {
+    e.preventDefault();
+    if (!activeCelebration) return;
+
+    const updatedCelebrations = bride.celebrations.map((c) => {
+      if (c.id !== activeCelebration.id) return c;
+      return {
+        ...c,
+        title: editTitle.trim() || c.title,
+        date: editDate || c.date,
+        area: editArea.trim() || c.area,
+        guestCount: Number(editGuestCount) || c.guestCount,
+        budget: Number(editBudget) || c.budget
+      };
+    });
+
+    const updatedBride = {
+      ...bride,
+      celebrations: updatedCelebrations
+    };
+
+    onUpdateBride(updatedBride);
+    setShowEditCelebrationModal(false);
+  };
 
   const todayStr = new Date().toLocaleDateString('en-ZA', {
     weekday: 'long',
@@ -241,18 +285,25 @@ export default function BrideDashboard({
                 <h2 className="font-serif text-2xl font-medium text-[#1A1816]">
                   {activeCelebration.title} — {activeCelebration.area}
                 </h2>
-                <p className="text-xs text-[#1A1816]/70">
-                  Target Date: <strong className="text-[#1A1816]">{activeCelebration.date}</strong> | Guest count: <strong className="text-[#1A1816]">{activeCelebration.guestCount}</strong>
+                <p className="text-xs text-[#1A1816]/70 mt-1">
+                  Target Date: <strong className="text-[#1A1816]">{activeCelebration.date}</strong> | Expected Guests: <strong className="text-[#9E784B] font-bold text-sm">{activeCelebration.guestCount} guests</strong>
                 </p>
               </div>
 
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <div>
                   <div className="text-xs text-[#1A1816]/60">Planned Budget</div>
                   <div className="font-serif text-xl font-semibold text-[#1A1816]">
                     R {activeCelebration.budget.toLocaleString('en-ZA')}
                   </div>
                 </div>
+
+                <button
+                  onClick={() => handleOpenEditCelebration(activeCelebration)}
+                  className="bg-[#1A1816] text-white px-4 py-2.5 rounded-lg text-xs font-semibold hover:bg-stone-800 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>⚙️</span> Edit Details & Guests
+                </button>
               </div>
             </div>
 
@@ -452,6 +503,104 @@ export default function BrideDashboard({
                   className="bg-[#1A1816] text-white px-5 py-2 rounded-lg font-semibold"
                 >
                   Save Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Celebration & Guest Count Modal */}
+      {showEditCelebrationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative font-sans">
+            <button
+              onClick={() => setShowEditCelebrationModal(false)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-[#1A1816] text-xl font-bold cursor-pointer"
+            >
+              &times;
+            </button>
+            
+            <h3 className="font-serif text-xl font-medium text-[#1A1816]">
+              Edit Wedding Details & Guest Count
+            </h3>
+
+            <form onSubmit={handleSaveEditCelebration} className="space-y-4 text-xs font-sans">
+              <div>
+                <label className="font-semibold text-[#1A1816]/80">Celebration Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3.5 py-2 text-sm text-[#1A1816] mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-[#1A1816]/80">Expected Guest Count</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editGuestCount}
+                    onChange={(e) => setEditGuestCount(e.target.value)}
+                    className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3.5 py-2 text-sm text-[#1A1816] font-bold text-[#9E784B] mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1A1816]/80">Target Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3.5 py-2 text-sm text-[#1A1816] mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-[#1A1816]/80">Location / Area</label>
+                  <input
+                    type="text"
+                    required
+                    value={editArea}
+                    onChange={(e) => setEditArea(e.target.value)}
+                    placeholder="e.g. Soweto / Sandton"
+                    className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3.5 py-2 text-sm text-[#1A1816] mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#1A1816]/80">Planned Budget (R)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={editBudget}
+                    onChange={(e) => setEditBudget(e.target.value)}
+                    className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3.5 py-2 text-sm text-[#1A1816] mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E6DED6]">
+                <button
+                  type="button"
+                  onClick={() => setShowEditCelebrationModal(false)}
+                  className="px-4 py-2 rounded-lg text-stone-500 hover:text-[#1A1816] font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#1A1816] text-white px-6 py-2 rounded-lg font-semibold cursor-pointer shadow-xs"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

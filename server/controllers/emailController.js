@@ -111,6 +111,8 @@ const sendInvitationEmail = async (req, res) => {
       </html>
     `;
 
+    const isLiveSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
+
     const info = await transporter.sendMail({
       from: `"CelebrateIT Team" <${process.env.SMTP_FROM || 'notifications@celebrateit.co.za'}>`,
       to,
@@ -118,11 +120,19 @@ const sendInvitationEmail = async (req, res) => {
       html: htmlBody
     });
 
-    console.log('Invitation email dispatched:', info);
+    console.log(`[CelebrateIT Email API] Email ${isLiveSmtp ? 'DISPATCHED LIVE' : 'SIMULATED/LOGGED'}:`, {
+      to,
+      subject,
+      recipientName: memberName,
+      isLiveSmtp
+    });
 
     return res.status(200).json({
       success: true,
-      message: 'Invitation email successfully sent',
+      mode: isLiveSmtp ? 'live_smtp' : 'simulated_dev',
+      message: isLiveSmtp
+        ? `Live email sent to ${to}!`
+        : `Email invitation simulated for ${to}. Add SMTP_HOST & SMTP_USER to server/.env to deliver live emails to inbox.`,
       details: {
         to,
         subject,

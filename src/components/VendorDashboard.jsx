@@ -82,10 +82,10 @@ export default function VendorDashboard({
               LISTING SCORE
             </span>
             <div className="font-serif text-3xl font-bold text-[#9E784B]">
-              {vendor.completenessScore}%
+              {vendor?.completenessScore || 85}%
             </div>
             <div className="text-xs text-[#1A1816]/60">
-              {vendor.isLive ? 'Live in Directory' : 'Draft'}
+              {vendor?.isLive ? 'Live in Directory' : 'Draft'}
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export default function VendorDashboard({
               <h3 className="font-serif text-xl font-medium text-[#1A1816]">
                 Incoming Bride Enquiries
               </h3>
-              <p className="text-xs text-[#1A1816]/60">Click an enquiry to open the conversation thread</p>
+              <p className="text-xs text-[#1A1816]/60">Click an enquiry to open the conversation thread or confirm booking</p>
             </div>
             <button
               onClick={onOpenInbox}
@@ -113,10 +113,9 @@ export default function VendorDashboard({
               enquiries.map((e) => (
                 <div
                   key={e.id}
-                  onClick={onOpenInbox}
-                  className="p-4 bg-[#F9F5F2] border border-[#E6DED6] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#9E784B] transition-colors cursor-pointer"
+                  className="p-4 bg-[#F9F5F2] border border-[#E6DED6] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#9E784B] transition-colors"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 cursor-pointer flex-1" onClick={onOpenInbox}>
                     <div className="flex items-center gap-2">
                       <span className="font-serif text-base font-medium text-[#1A1816]">{e.brideName}</span>
                       <span className="text-[10px] bg-[#9E784B]/10 text-[#9E784B] px-2 py-0.5 rounded-xs font-semibold">
@@ -128,11 +127,28 @@ export default function VendorDashboard({
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-xs text-[#1A1816]/60">Budget Band</div>
-                    <div className="font-serif text-sm font-semibold text-[#1A1816]">
-                      {e.budgetBand}
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-xs text-[#1A1816]/60">Budget Band</div>
+                      <div className="font-serif text-sm font-semibold text-[#1A1816]">
+                        {e.budgetBand}
+                      </div>
                     </div>
+                    {e.status !== 'BOOKED' ? (
+                      <button
+                        onClick={(evt) => {
+                          evt.stopPropagation();
+                          if (onMarkBooked) onMarkBooked(e.id);
+                        }}
+                        className="bg-[#9E784B] text-white text-xs px-3.5 py-2 rounded-lg font-semibold hover:bg-[#8A673E] transition-colors cursor-pointer shadow-xs"
+                      >
+                        Confirm Booking ✓
+                      </button>
+                    ) : (
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-3 py-1.5 rounded-lg font-semibold">
+                        Booked ✓
+                      </span>
+                    )}
                   </div>
                 </div>
               ))
