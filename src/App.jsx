@@ -35,6 +35,7 @@ import {
   getProfile,
   getVendors,
   saveVendorProfile,
+  deleteVendorProfile,
   getBrideData,
   saveBrideOnboarding,
   updateCelebrationDetails,
@@ -46,7 +47,8 @@ import {
   updateEnquiryStatus,
   updateEnquiryMessages,
   getSearchMisses,
-  logSearchMiss
+  logSearchMiss,
+  deleteAllDatabaseData
 } from './services/supabaseService';
 
 const isSupabaseConfigured = Boolean(
@@ -64,16 +66,19 @@ const validateRoleAccess = (view, user) => {
   if (view === 'admin_dashboard') {
     return role === 'ADMIN';
   }
-  if (view === 'vendor_dashboard') {
+  if (view === 'vendor_dashboard' || view === 'vendor_editor') {
     return role === 'VENDOR';
   }
   if (view === 'bride_dashboard') {
     return role === 'BRIDE';
   }
-  if (view === 'planning_together' || view === 'messages') {
+  if (view === 'planning_together') {
+    return role === 'BRIDE';
+  }
+  if (view === 'messages') {
     return !!role; // Must be authenticated
   }
-  if (view === 'landing' || view === 'vendor_directory') {
+  if (view === 'landing' || view === 'vendor_directory' || view === 'account_settings') {
     return true;
   }
   return false;
@@ -161,8 +166,14 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('celebrateit_currentUser', JSON.stringify(currentUser));
+      // Always close onboarding modal for non-BRIDE users
+      const userRole = String(currentUser.role || '').toUpperCase();
+      if (userRole !== 'BRIDE') {
+        setOnboardingOpen(false);
+      }
     } else {
       localStorage.removeItem('celebrateit_currentUser');
+      setOnboardingOpen(false);
     }
   }, [currentUser]);
 
@@ -204,12 +215,14 @@ export default function App() {
             cachedUser = JSON.parse(localStorage.getItem('celebrateit_currentUser') || '{}');
           } catch (e) {}
 
-          let role = queryRole ||
+          let rawRole = queryRole ||
                      profile?.role ||
                      user.user_metadata?.role ||
                      cachedUser?.role ||
                      localStorage.getItem('celebrateit_role') ||
                      'BRIDE';
+
+          let role = String(rawRole).toUpperCase();
 
           let name = profile?.name ||
                      user.user_metadata?.name ||
@@ -217,14 +230,15 @@ export default function App() {
                      cachedUser?.name ||
                      user.email;
 
-          if (queryRole && (queryRole === 'BRIDE' || queryRole === 'VENDOR' || queryRole === 'ADMIN')) {
-            try {
-              await supabase
-                .from('profiles')
-                .upsert({ id: user.id, name, email: user.email, role });
-            } catch (e) {
-              console.warn('Profile upsert notice:', e);
-            }
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({ id: user.id, name, email: user.email, role });
+          } catch (e) {
+            console.warn('Profile upsert notice:', e);
+          }
+
+          if (queryRole) {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
 
@@ -269,7 +283,7 @@ export default function App() {
             } catch (e) {
               console.warn('Notice loading admin enquiries:', e);
             }
-          } else {
+          } else if (role === 'BRIDE') {
             const brideData = await getBrideData(user.id);
             if (brideData && brideData.weddingId) {
               setBride(brideData);
@@ -295,6 +309,10 @@ export default function App() {
             }
             const dbEnqs = await getEnquiries(user.id, 'BRIDE');
             setEnquiries(dbEnqs);
+          } else {
+            // Safety fallback for any unrecognised non-bride role
+            setOnboardingOpen(false);
+            setViewMode('vendor_dashboard');
           }
         } else {
           setCurrentUser(null);
@@ -326,8 +344,10 @@ export default function App() {
           setOnboardingOpen(true);
         }
       } else if (user.role === 'VENDOR') {
+        setOnboardingOpen(false);
         setViewMode('vendor_dashboard');
       } else if (user.role === 'ADMIN') {
+        setOnboardingOpen(false);
         setViewMode('admin_dashboard');
       }
       return;
@@ -350,8 +370,10 @@ export default function App() {
         }
       }
     } else if (user.role === 'VENDOR') {
+      setOnboardingOpen(false);
       setViewMode('vendor_dashboard');
     } else if (user.role === 'ADMIN') {
+      setOnboardingOpen(false);
       setViewMode('admin_dashboard');
     }
   };
@@ -370,12 +392,21 @@ export default function App() {
   };
 
   const handleSwitchRole = async (targetRole) => {
+    // Always close onboarding modal when switching roles
+    setOnboardingOpen(false);
+    
     if (!isSupabaseConfigured) {
       if (targetRole === 'BRIDE') {
-        setCurrentUser({ id: bride.id, name: bride.name, email: bride.email, role: 'BRIDE' });
+        setCurrentUser({ id: bride?.id || 'b1', name: bride?.name || 'Bride Demo', email: bride?.email || 'bride@example.com', role: 'BRIDE' });
         setViewMode('bride_dashboard');
       } else if (targetRole === 'VENDOR') {
-        setCurrentUser({ id: 'v1', name: vendors[0].businessName, email: 'vendor@example.com', role: 'VENDOR' });
+        const vendor = vendors?.find(v => v.id === 'v1') || vendors?.[0];
+        setCurrentUser({ 
+          id: vendor?.id || 'v1', 
+          name: vendor?.businessName || 'Vendor Demo', 
+          email: 'vendor@example.com', 
+          role: 'VENDOR' 
+        });
         setViewMode('vendor_dashboard');
       } else if (targetRole === 'ADMIN') {
         setCurrentUser({ id: 'admin1', name: 'Founder Admin', email: 'admin@celebrateit.co.za', role: 'ADMIN' });
@@ -384,7 +415,7 @@ export default function App() {
       return;
     }
 
-    // Demo simulation for logged-in user in Supabase mode
+    // Supabase mode
     if (targetRole === 'BRIDE') {
       setCurrentUser({ id: 'b1', name: 'Bride (Demo)', email: 'bride@example.com', role: 'BRIDE' });
       const brideData = await getBrideData('b1') || INITIAL_BRIDE;
@@ -615,6 +646,57 @@ export default function App() {
     }
   };
 
+  // Delete vendor listing (admin only)
+  const handleDeleteVendor = async (vendorId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this vendor listing? This action cannot be undone.')) {
+      return;
+    }
+
+    if (!isSupabaseConfigured || !isUuid(vendorId)) {
+      // Mock mode: just remove from local state
+      setVendors((prev) => prev.filter((v) => v.id !== vendorId));
+      return;
+    }
+
+    try {
+      await deleteVendorProfile(vendorId);
+      setVendors(prev => prev.filter(v => v.id !== vendorId));
+    } catch (err) {
+      console.error('Error deleting vendor:', err);
+      alert('Failed to delete vendor: ' + err.message);
+    }
+  };
+
+  // Clear all database data (admin only)
+  const handleClearDatabase = async () => {
+    if (!window.confirm('WARNING: This will permanently delete ALL data in the database (vendors, brides, enquiries, profiles, everything). This action cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      // Mock mode: clear local state
+      setVendors([]);
+      setBride(INITIAL_BRIDE);
+      setEnquiries([]);
+      setSearchMisses([]);
+      alert('Mock data cleared (mock mode only)');
+      return;
+    }
+
+    try {
+      const result = await deleteAllDatabaseData();
+      alert('✅ ' + result.message + '\n\nThe database is now empty and ready for fresh population.');
+      // Reset local state
+      setVendors([]);
+      setBride(INITIAL_BRIDE);
+      setEnquiries([]);
+      setSearchMisses([]);
+    } catch (err) {
+      console.error('Error clearing database:', err);
+      alert('Failed to clear database: ' + err.message);
+    }
+  };
+
   // Bride data changes inside dashboard (Checklist checking, adding tasks, budget lines)
   const handleUpdateBride = async (updatedBride) => {
     setBride(updatedBride);
@@ -763,6 +845,8 @@ export default function App() {
           <AdminDashboard
             vendors={vendors}
             onToggleVendorLive={handleToggleVendorLive}
+            onDeleteVendor={handleDeleteVendor}
+            onClearDatabase={handleClearDatabase}
             searchMisses={searchMisses}
             enquiries={enquiries}
           />
@@ -840,6 +924,7 @@ export default function App() {
         onLogSearchMiss={handleLogSearchMiss}
         onOpenVendorProfile={handleSelectVendor}
         currentUser={currentUser}
+        onUpdateBride={handleUpdateBride}
       />
 
       {/* Footer */}

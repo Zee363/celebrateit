@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDashboard }) {
   const [businessName, setBusinessName] = useState(vendor?.businessName || '');
@@ -7,9 +7,20 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
   const [celebrationsServed, setCelebrationsServed] = useState(vendor?.celebrationsServed || 'BOTH');
   const [description, setDescription] = useState(vendor?.description || '');
   const [coverPhoto, setCoverPhoto] = useState(vendor?.coverPhoto || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80');
-
-  // Selected areas
   const [areas, setAreas] = useState(vendor?.areasServed || ['Sandton', 'Johannesburg']);
+
+  // Initialize form when vendor changes
+  useEffect(() => {
+    if (vendor) {
+      setBusinessName(vendor.businessName || '');
+      setCategory(vendor.category || 'Venue');
+      setPriceFrom(vendor.priceFrom ?? 15000);
+      setCelebrationsServed(vendor.celebrationsServed || 'BOTH');
+      setDescription(vendor.description || '');
+      setCoverPhoto(vendor.coverPhoto || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80');
+      setAreas(vendor.areasServed && Array.isArray(vendor.areasServed) ? vendor.areasServed : []);
+    }
+  }, [vendor?.id]);
 
   // Calculate completeness score automatically
   let score = 0;

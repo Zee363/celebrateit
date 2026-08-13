@@ -64,7 +64,7 @@ export default function Navbar({
         </button>
       </div>
 
-      {/* Middle: Navigation Links (Bride Only) */}
+      {/* Middle: Navigation Links */}
       {currentUser?.role === 'BRIDE' && (
         <nav className="hidden md:flex items-center justify-center gap-5 sm:gap-7 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#1A1816]/70 flex-1">
           <button
@@ -98,6 +98,43 @@ export default function Navbar({
             }`}
           >
             Planning Together
+          </button>
+        </nav>
+      )}
+
+      {currentUser?.role === 'VENDOR' && (
+        <nav className="hidden md:flex items-center justify-center gap-5 sm:gap-7 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#1A1816]/70 flex-1">
+          <button
+            onClick={() => onNavigate('vendor_dashboard')}
+            className={`hover:text-[#1A1816] transition-colors cursor-pointer whitespace-nowrap ${
+              currentView === 'vendor_dashboard' ? 'text-[#9E784B] underline underline-offset-6 decoration-2' : ''
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => onNavigate('vendor_editor')}
+            className={`hover:text-[#1A1816] transition-colors cursor-pointer whitespace-nowrap ${
+              currentView === 'vendor_editor' ? 'text-[#9E784B] underline underline-offset-6 decoration-2' : ''
+            }`}
+          >
+            Edit Listing
+          </button>
+          <button
+            onClick={() => onNavigate('messages')}
+            className={`hover:text-[#1A1816] transition-colors cursor-pointer whitespace-nowrap ${
+              currentView === 'messages' ? 'text-[#9E784B] underline underline-offset-6 decoration-2' : ''
+            }`}
+          >
+            Enquiries
+          </button>
+          <button
+            onClick={() => onNavigate('vendor_directory')}
+            className={`hover:text-[#1A1816] transition-colors cursor-pointer whitespace-nowrap ${
+              currentView === 'vendor_directory' ? 'text-[#9E784B] underline underline-offset-6 decoration-2' : ''
+            }`}
+          >
+            Directory Preview
           </button>
         </nav>
       )}

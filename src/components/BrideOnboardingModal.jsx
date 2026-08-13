@@ -16,7 +16,10 @@ export default function BrideOnboardingModal({ isOpen, user, onComplete }) {
   const [tradBudget, setTradBudget] = useState(220000);
   const [whiteBudget, setWhiteBudget] = useState(380000);
 
+  // Only show onboarding modal for BRIDE users who have opened it
   if (!isOpen) return null;
+  const userRole = String(user?.role || '').toUpperCase();
+  if (userRole !== 'BRIDE') return null;
 
   const handleTotalBudgetChange = (val) => {
     const num = Number(val) || 0;

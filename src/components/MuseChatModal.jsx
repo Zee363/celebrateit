@@ -8,16 +8,68 @@ export default function MuseChatModal({
   vendors,
   onLogSearchMiss,
   onOpenVendorProfile,
-  currentUser
+  currentUser,
+  onUpdateBride
 }) {
   const userName = currentUser?.name || bride?.name || 'there';
-  const celebrationsCount = bride?.celebrations?.length || 2;
-
   const [messages, setMessages] = useState([]);
-
   const [inputVal, setInputVal] = useState('');
+  const [appliedActions, setAppliedActions] = useState({});
 
   if (!isOpen) return null;
+
+  const handleApplyBudgetAction = (msgId, actionData) => {
+    if (!bride || !onUpdateBride) return;
+    const { total, trad, white } = actionData;
+
+    const updatedCelebrations = (bride.celebrations || []).map((c) => {
+      if (c.type === 'TRADITIONAL') {
+        return { ...c, budget: trad };
+      } else if (c.type === 'WHITE') {
+        return { ...c, budget: white };
+      }
+      return c;
+    });
+
+    const updatedBride = {
+      ...bride,
+      overallBudget: total,
+      celebrations: updatedCelebrations
+    };
+
+    onUpdateBride(updatedBride);
+    setAppliedActions((prev) => ({ ...prev, [msgId]: 'Budget breakdown applied to dashboard!' }));
+  };
+
+  const handleAddChecklistAction = (msgId) => {
+    if (!bride || !onUpdateBride) return;
+
+    const newTradTasks = [
+      { id: 't_cb_ai_' + Date.now() + '_1', title: 'Confirm traditional lobola agreement details with elders', dueDate: '2026-09-15', done: false },
+      { id: 't_cb_ai_' + Date.now() + '_2', title: 'Book spit braai caterer for traditional reception', dueDate: '2026-10-01', done: false }
+    ];
+
+    const newWhiteTasks = [
+      { id: 'w_cb_ai_' + Date.now() + '_1', title: 'Finalise white wedding venue booking & deposit', dueDate: '2026-09-30', done: false },
+      { id: 'w_cb_ai_' + Date.now() + '_2', title: 'Book documentary wedding photographer', dueDate: '2026-10-15', done: false }
+    ];
+
+    const updatedCelebrations = (bride.celebrations || []).map((c) => {
+      if (c.type === 'TRADITIONAL') {
+        return { ...c, checklist: [...(c.checklist || []), ...newTradTasks] };
+      } else if (c.type === 'WHITE') {
+        return { ...c, checklist: [...(c.checklist || []), ...newWhiteTasks] };
+      }
+      return c;
+    });
+
+    onUpdateBride({
+      ...bride,
+      celebrations: updatedCelebrations
+    });
+
+    setAppliedActions((prev) => ({ ...prev, [msgId]: '4 tasks added to your celebration checklist!' }));
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -26,7 +78,8 @@ export default function MuseChatModal({
     const userText = inputVal.trim();
     setInputVal('');
 
-    const newMsgs = [...messages, { id: 'msg_' + Date.now(), role: 'user', content: userText }];
+    const msgId = 'msg_' + Date.now();
+    const newMsgs = [...messages, { id: msgId, role: 'user', content: userText }];
     setMessages(newMsgs);
 
     // 1. Try backend API if VITE_API_URL is configured
@@ -62,6 +115,7 @@ export default function MuseChatModal({
     // 2. Built-in smart Muse assistant engine (Fallback client-side)
     setTimeout(() => {
       let museReply = '';
+      let actionObj = null;
       const lower = userText.toLowerCase();
 
       if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('greetings')) {
@@ -73,7 +127,6 @@ export default function MuseChatModal({
           `• Planning budget splits and coordinating timeline dates\n\n` +
           `What aspect of your dual celebrations would you like to discuss today?`;
       } else if (lower.includes('budget') || lower.includes('cost') || lower.includes('rand') || lower.includes('split') || lower.includes('money') || (lower.includes('r') && /\d+/.test(lower))) {
-        // Extract budget digits dynamically (e.g. R60000, 60,000, R60 000)
         const budgetMatch = lower.replace(/[,.\s]/g, '').match(/r?(\d+)/);
         let customBudget = bride?.overallBudget || 600000;
         if (budgetMatch) {
@@ -88,25 +141,34 @@ export default function MuseChatModal({
 
         let details = "";
         if (lower.includes('lobola') || lower.includes('attire') || lower.includes('deco') || lower.includes('decor')) {
-          details = `\n\nFor your specific query about lobola, attire, and decor/deco:\n` +
-            `• **Lobola & Traditional Attire**: Fit comfortably inside your Traditional Day allocation (R ${tradAlloc.toLocaleString('en-ZA')}). We recommend allocating around R15,000 - R20,000 for bespoke attire & beadwork, leaving R10,000 for home marquee/tents & decor.\n` +
-            `• **Decor & Styling**: For a white wedding reception, we recommend reserving around 10-15% of your White Wedding budget (R ${Math.round(whiteAlloc * 0.12).toLocaleString('en-ZA')}) for luxury floral designs, lighting, and table styling.`;
+          details = `\n\nFor your specific query about lobola, attire, and decor:\n` +
+            `• **Lobola & Traditional Attire**: Fit comfortably inside your Traditional Day allocation (R ${tradAlloc.toLocaleString('en-ZA')}). We recommend allocating R15 000 - R20 000 for bespoke attire & beadwork.\n` +
+            `• **Decor & Styling**: For a white wedding reception, reserve around 10-15% of your White Wedding budget (R ${Math.round(whiteAlloc * 0.12).toLocaleString('en-ZA')}) for luxury floral designs & styling.`;
         }
 
         museReply = `For your budget of R ${customBudget.toLocaleString('en-ZA')}, here is the recommended split between your events:\n\n` +
           `• **Traditional Day**: R ${tradAlloc.toLocaleString('en-ZA')} (37% — attire, lobola proceedings, spit braai & tents)\n` +
           `• **White Wedding**: R ${whiteAlloc.toLocaleString('en-ZA')} (63% — venue banqueting, gown, photography & decor)` +
           details +
-          `\n\nWould you like to adjust these numbers on your dashboard?`;
+          `\n\nWould you like me to apply these split numbers directly to your dashboard?`;
+        
+        actionObj = { type: 'apply_budget', total: customBudget, trad: tradAlloc, white: whiteAlloc };
+      } else if (lower.includes('task') || lower.includes('checklist') || lower.includes('next') || lower.includes('do next') || lower.includes('todo')) {
+        museReply = `Here are essential next steps for your dual celebrations:\n\n` +
+          `1. **Traditional Day**: Align family elders on lobola negotiation dates and lock in your traditional spit braai caterer.\n` +
+          `2. **White Wedding**: Secure your venue contract in Sandton/Midrand and book your main photographer.\n\n` +
+          `Would you like me to add these 4 tasks directly to your celebration checklist?`;
+
+        actionObj = { type: 'add_checklist' };
       } else if (lower.includes('cater') || lower.includes('food') || lower.includes('braai') || lower.includes('menu') || lower.includes('eat')) {
         const liveCaterers = (vendors || []).filter((v) => v.isLive && v.category === 'Catering');
         if (liveCaterers.length > 0) {
           museReply = `I found ${liveCaterers.length} verified catering partner(s) serving Gauteng:\n\n` +
             liveCaterers.map(c => `• **${c.businessName}** (Starting from R ${c.priceFrom.toLocaleString('en-ZA')}) - ${c.description}`).join('\n\n') +
-            `\n\nFor a traditional day, authentic spit braais and sides are highly popular. Let me know if you would like me to connect you with them!`;
+            `\n\nFor a traditional day, authentic spit braais and sides are highly popular. You can view vendor details in the directory!`;
         } else {
           museReply = `I searched our live vendor directory for catering in your area, but we don't have an active listing matching that criteria yet. I've recorded this request for our recruitment team!\n\n` +
-            `Generally, we recommend reserving R25 000 - R40 000 of your traditional budget for catering (like Ubuntu Culinary Art & Catering) when hosting around 180 guests.`;
+            `Generally, we recommend reserving R25 000 - R40 000 of your traditional budget for catering when hosting around 180 guests.`;
           if (onLogSearchMiss) {
             onLogSearchMiss({
               id: 'sm_muse_' + Date.now(),
@@ -116,12 +178,11 @@ export default function MuseChatModal({
             });
           }
         }
-      } else if (lower.includes('designer') || lower.includes('dress') || lower.includes('gown') || lower.includes('attire') || lower.includes('suit') || lower.includes('tailor') || lower.includes('beadwork')) {
+      } else if (lower.includes('designer') || lower.includes('dress') || lower.includes('gown') || lower.includes('attire') || lower.includes('suit') || lower.includes('beadwork')) {
         museReply = `For traditional attire, bespoke suits, and gorgeous white wedding gowns in Gauteng, here are highly recommended designers:\n\n` +
           `• **Ntozinhle Designs (Soweto)**: Specializes in stunning traditional Zulu beadwork and modern-traditional mashups.\n` +
           `• **Orapeleng Modutle (Sandton)**: High-end custom couture white wedding gowns and luxury bridal wear.\n` +
-          `• **Biji La Maison (Johannesburg)**: Internationally renowned for bespoke corsetry and tailored bridal attire.\n\n` +
-          `Would you like to search the vendor directory for more options, or look into attire budgets?`;
+          `• **Biji La Maison (Johannesburg)**: Internationally renowned for bespoke corsetry and tailored bridal attire.`;
       } else if (lower.includes('venue') || lower.includes('place') || lower.includes('hall') || lower.includes('location')) {
         const liveVenues = (vendors || []).filter((v) => v.isLive && v.category === 'Venue');
         if (liveVenues.length > 0) {
@@ -130,7 +191,7 @@ export default function MuseChatModal({
             `\n\nYou can view their price ranges and photos in the directory.`;
         } else {
           museReply = `We are currently onboarding new luxury & traditional venues in Gauteng. I've logged this search for our team!\n\n` +
-            `Generally, the White Wedding venue package (like The Greenhouse Sandton) represents about 45% of the overall budget, starting around R45 000.`;
+            `Generally, the White Wedding venue package represents about 45% of the overall budget, starting around R45 000.`;
         }
       } else if (lower.includes('photo') || lower.includes('camera') || lower.includes('video') || lower.includes('film')) {
         const photographers = (vendors || []).filter((v) => v.isLive && v.category === 'Photography');
@@ -140,18 +201,10 @@ export default function MuseChatModal({
         } else {
           museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria. Typically, Thando M. Photography (from R18 000) captures rich traditional colors beautifully.`;
         }
-      } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('time') || lower.includes('spacing')) {
-        museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly! Let me know if you want to inspect your target dates.`;
-      } else if (lower.includes('lobola') || lower.includes('elder') || lower.includes('agreement')) {
-        museReply = `Traditional lobola proceedings and negotiations are foundational. We recommend starting family elder alignments at least 2 to 3 months before your traditional celebration. Make sure you set a dedicated budget line for family gifts and logistics!`;
-      } else if (lower.includes('help') || lower.includes('features') || lower.includes('what can you do')) {
-        museReply = `I can walk you through the planning details of your dual celebrations. Ask me questions such as:\n\n` +
-          `1. "How do I split my budget?"\n` +
-          `2. "Where can I find a traditional catering supplier?"\n` +
-          `3. "What spacing should I leave between my dates?"\n` +
-          `4. "Can you recommend a traditional dress designer?"`;
+      } else if (lower.includes('date') || lower.includes('clash') || lower.includes('when') || lower.includes('spacing')) {
+        museReply = `When planning both a Traditional celebration and a White wedding, spacing your two ceremonies by 3 to 4 weeks gives your family travel breathing room and lets your budget flow smoothly!`;
       } else {
-        museReply = `I understand! I'm here to support your dual-wedding planning. Could you specify if you are asking about budgeting ratios, finding a caterer/venue in Gauteng, attire fittings, or timeline date clash checks?`;
+        museReply = `I understand! I'm here to support your dual-wedding planning. Ask me about budget splits, catering suppliers, venues in Gauteng, or generating next checklist tasks!`;
       }
 
       setMessages((prev) => [
@@ -159,7 +212,8 @@ export default function MuseChatModal({
         {
           id: 'msg_res_' + Date.now(),
           role: 'muse',
-          content: museReply
+          content: museReply,
+          action: actionObj
         }
       ]);
     }, 300);
@@ -201,19 +255,19 @@ export default function MuseChatModal({
               <div className="flex flex-col sm:flex-row gap-2 max-w-md w-full justify-center">
                 <button
                   onClick={() => {
-                    setInputVal("How should I split my budget of R60,000 between traditional and white weddings?");
+                    setInputVal("How should I split my budget of R600,000 between traditional and white weddings?");
                   }}
                   className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
                 >
-                  💡 Split R60,000 budget
+                  💡 Split R600,000 budget
                 </button>
                 <button
                   onClick={() => {
-                    setInputVal("What spacing should I leave between my traditional and white wedding dates?");
+                    setInputVal("What checklist tasks should I do next for both weddings?");
                   }}
                   className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
                 >
-                  📅 Spacing between dates
+                  📅 Generate next tasks
                 </button>
               </div>
             </div>
@@ -226,13 +280,39 @@ export default function MuseChatModal({
                 {m.role === 'muse' && (
                   <MiniMuseMark className="w-8 h-8 shrink-0 mt-1" />
                 )}
-                <div
-                  className={`p-4 rounded-2xl max-w-lg leading-relaxed whitespace-pre-line ${m.role === 'user'
-                      ? 'bg-[#1A1816] text-white rounded-tr-xs ml-auto'
-                      : 'bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] rounded-tl-xs'
-                    }`}
-                >
-                  {m.content}
+                <div className="space-y-2 max-w-lg">
+                  <div
+                    className={`p-4 rounded-2xl leading-relaxed whitespace-pre-line ${m.role === 'user'
+                        ? 'bg-[#1A1816] text-white rounded-tr-xs ml-auto'
+                        : 'bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] rounded-tl-xs'
+                      }`}
+                  >
+                    {m.content}
+                  </div>
+
+                  {/* Interactive Action Chip */}
+                  {m.role === 'muse' && m.action && (
+                    <div className="pt-1">
+                      {appliedActions[m.id] ? (
+                        <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-3 py-1.5 rounded-lg font-semibold border border-emerald-200">
+                          ✓ {appliedActions[m.id]}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (m.action.type === 'apply_budget') {
+                              handleApplyBudgetAction(m.id, m.action);
+                            } else if (m.action.type === 'add_checklist') {
+                              handleAddChecklistAction(m.id);
+                            }
+                          }}
+                          className="bg-[#9E784B] text-white text-xs px-4 py-2 rounded-lg font-semibold hover:bg-[#8A673E] transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
+                        >
+                          {m.action.type === 'apply_budget' ? '⚡ Apply Budget Breakdown to Workspace' : '📋 Add 4 Recommended Tasks to Checklist'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
@@ -246,7 +326,7 @@ export default function MuseChatModal({
             required
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Ask Muse about budget split, caterers, or dates..."
+            placeholder="Ask Muse about budget split, tasks, or caterers..."
             className="flex-1 bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1A1816] focus:outline-none focus:border-[#9E784B]"
           />
           <button

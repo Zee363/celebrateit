@@ -2,16 +2,43 @@ import React from 'react';
 
 export default function VendorDashboard({
   vendor,
-  enquiries,
+  enquiries = [],
   onOpenListingEditor,
   onOpenInbox,
   onMarkBooked
 }) {
-  const newEnquiriesCount = enquiries.filter((e) => e.status === 'SENT' || e.status === 'REPLIED').length;
-  const bookedCount = enquiries.filter((e) => e.status === 'BOOKED').length;
+  const newEnquiriesCount = (enquiries || []).filter((e) => e.status === 'SENT' || e.status === 'REPLIED').length;
+  const bookedCount = (enquiries || []).filter((e) => e.status === 'BOOKED').length;
+
+  const businessName = vendor?.businessName || 'Your Business';
+  const completeness = vendor?.completenessScore || 0;
+  const isLive = Boolean(vendor?.isLive);
 
   return (
     <div className="min-h-screen bg-[#F9F5F2] pt-28 pb-12 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
+
+      {/* Draft / Enlistment Callout Banner */}
+      {!isLive && (
+        <div className="max-w-7xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Listing Draft Mode ({completeness}%)
+              </span>
+              <span className="text-xs font-semibold text-amber-900">Your profile is not live yet!</span>
+            </div>
+            <p className="text-xs text-amber-800">
+              Complete your business description, select your category, and specify areas served to publish your profile in the Gauteng Vendor Directory.
+            </p>
+          </div>
+          <button
+            onClick={onOpenListingEditor}
+            className="bg-[#9E784B] text-white text-xs px-5 py-2.5 rounded-xl font-semibold hover:bg-[#8A673E] transition-all cursor-pointer whitespace-nowrap shadow-xs"
+          >
+            Enlist / Complete Business Listing →
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6DED6] pb-6">
@@ -20,7 +47,7 @@ export default function VendorDashboard({
             VENDOR PORTAL
           </span>
           <h1 className="font-serif text-3xl sm:text-4xl font-medium text-[#1A1816]">
-            {vendor.businessName}
+            {businessName}
           </h1>
           <p className="text-xs sm:text-sm text-[#1A1816]/70">
             Self-serve listing & enquiry management in Gauteng.

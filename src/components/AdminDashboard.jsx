@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 export default function AdminDashboard({
   vendors,
   onToggleVendorLive,
+  onDeleteVendor,
+  onClearDatabase,
   searchMisses,
   enquiries,
   bridesCount = 12,
@@ -17,7 +19,7 @@ export default function AdminDashboard({
     <div className="min-h-screen bg-[#F9F5F2] py-8 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
 
       {/* Header */}
-      <div className="max-w-7xl mx-auto flex items-center justify-between border-b border-[#E6DED6] pb-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between border-b border-[#E6DED6] pb-6 gap-6">
         <div>
           <span className="text-xs font-semibold uppercase tracking-widest text-[#9E784B]">
             PRIVATE FOUNDER PORTAL
@@ -30,8 +32,16 @@ export default function AdminDashboard({
           </p>
         </div>
 
-        <div className="text-right font-serif text-xs text-[#1A1816]">
-          Status: <span className="font-semibold text-emerald-700">Operational</span>
+        <div className="flex flex-col items-end gap-3">
+          <div className="text-right font-serif text-xs text-[#1A1816]">
+            Status: <span className="font-semibold text-emerald-700">Operational</span>
+          </div>
+          <button
+            onClick={onClearDatabase}
+            className="bg-red-600 text-white text-xs px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all cursor-pointer shadow-xs"
+          >
+            🗑️ Clear All Database
+          </button>
         </div>
       </div>
 
@@ -143,7 +153,7 @@ export default function AdminDashboard({
                   <th className="p-3 font-semibold">Category</th>
                   <th className="p-3 font-semibold">Areas</th>
                   <th className="p-3 font-semibold">Status</th>
-                  <th className="p-3 font-semibold">Toggle Control</th>
+                  <th className="p-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6DED6]">
@@ -159,12 +169,20 @@ export default function AdminDashboard({
                       </span>
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => onToggleVendorLive(v.id)}
-                        className="bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] px-3 py-1 rounded-md text-[11px] font-semibold hover:border-[#9E784B] cursor-pointer"
-                      >
-                        {v.isLive ? 'Pause Listing' : 'Restore Listing'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onToggleVendorLive(v.id)}
+                          className="bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] px-3 py-1 rounded-md text-[11px] font-semibold hover:border-[#9E784B] cursor-pointer whitespace-nowrap"
+                        >
+                          {v.isLive ? 'Pause' : 'Restore'}
+                        </button>
+                        <button
+                          onClick={() => onDeleteVendor(v.id)}
+                          className="bg-red-50 border border-red-200 text-red-700 px-3 py-1 rounded-md text-[11px] font-semibold hover:border-red-400 cursor-pointer whitespace-nowrap"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

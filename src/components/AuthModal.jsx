@@ -40,6 +40,17 @@ export default function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
 
         const user = data.user;
         if (user) {
+          try {
+            await supabase.from('profiles').upsert({
+              id: user.id,
+              name: name.trim(),
+              email: email.trim(),
+              role: role,
+            });
+          } catch (e) {
+            console.warn('Notice saving profile on signup:', e);
+          }
+          localStorage.setItem('celebrateit_role', role);
           onAuthSuccess({
             id: user.id,
             name: name.trim(),
@@ -71,8 +82,11 @@ export default function AuthModal({ isOpen, onClose, mode, onAuthSuccess }) {
             .eq('id', user.id)
             .single();
 
-          const userRole = profile?.role || user.user_metadata?.role || 'BRIDE';
+          const rawRole = profile?.role || user.user_metadata?.role || localStorage.getItem('celebrateit_role') || 'BRIDE';
+          const userRole = String(rawRole).toUpperCase();
           const userName = profile?.name || user.user_metadata?.name || user.email;
+
+          localStorage.setItem('celebrateit_role', userRole);
 
           onAuthSuccess({
             id: user.id,
