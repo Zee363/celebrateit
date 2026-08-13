@@ -199,20 +199,77 @@ export default function App() {
           const queryRole = urlParams.get('role');
 
           let profile = await getProfile(user.id);
-          let role = profile?.role || 'BRIDE';
-          let name = profile?.name || user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+          let cachedUser = null;
+          try {
+            cachedUser = JSON.parse(localStorage.getItem('celebrateit_currentUser') || '{}');
+          } catch (e) {}
+
+          let role = queryRole ||
+                     profile?.role ||
+                     user.user_metadata?.role ||
+                     cachedUser?.role ||
+                     localStorage.getItem('celebrateit_role') ||
+                     'BRIDE';
+
+          let name = profile?.name ||
+                     user.user_metadata?.name ||
+                     user.user_metadata?.full_name ||
+                     cachedUser?.name ||
+                     user.email;
 
           if (queryRole && (queryRole === 'BRIDE' || queryRole === 'VENDOR' || queryRole === 'ADMIN')) {
-            role = queryRole;
-            await supabase
-              .from('profiles')
-              .upsert({ id: user.id, name, email: user.email, role });
+            try {
+              await supabase
+                .from('profiles')
+                .upsert({ id: user.id, name, email: user.email, role });
+            } catch (e) {
+              console.warn('Profile upsert notice:', e);
+            }
             window.history.replaceState({}, document.title, window.location.pathname);
           }
 
+          localStorage.setItem('celebrateit_role', role);
           setCurrentUser({ id: user.id, name, email: user.email, role });
 
-          if (role === 'BRIDE') {
+          if (role === 'VENDOR') {
+            setOnboardingOpen(false);
+            const allVendors = await getVendors();
+            let vendorProf = allVendors.find(v => v.id === user.id);
+            if (!vendorProf) {
+              try {
+                vendorProf = await saveVendorProfile({
+                  id: user.id,
+                  businessName: name,
+                  category: 'Venue',
+                  areasServed: [],
+                  celebrationsServed: 'BOTH',
+                  priceFrom: 0,
+                  description: '',
+                  completenessScore: 0,
+                  isLive: false
+                });
+                if (vendorProf) setVendors(prev => [...prev, vendorProf]);
+              } catch (e) {
+                console.warn('Notice creating vendor profile:', e);
+              }
+            }
+            setViewMode('vendor_dashboard');
+            try {
+              const dbEnqs = await getEnquiries(user.id, 'VENDOR');
+              setEnquiries(dbEnqs);
+            } catch (e) {
+              console.warn('Notice loading vendor enquiries:', e);
+            }
+          } else if (role === 'ADMIN') {
+            setOnboardingOpen(false);
+            setViewMode('admin_dashboard');
+            try {
+              const dbEnqs = await getEnquiries(user.id, 'ADMIN');
+              setEnquiries(dbEnqs);
+            } catch (e) {
+              console.warn('Notice loading admin enquiries:', e);
+            }
+          } else {
             const brideData = await getBrideData(user.id);
             if (brideData && brideData.weddingId) {
               setBride(brideData);
@@ -237,32 +294,6 @@ export default function App() {
               }
             }
             const dbEnqs = await getEnquiries(user.id, 'BRIDE');
-            setEnquiries(dbEnqs);
-          } else if (role === 'VENDOR') {
-            const allVendors = await getVendors();
-            let vendorProf = allVendors.find(v => v.id === user.id);
-            if (!vendorProf) {
-              vendorProf = await saveVendorProfile({
-                id: user.id,
-                businessName: name,
-                category: 'Venue',
-                areasServed: [],
-                celebrationsServed: 'BOTH',
-                priceFrom: 0,
-                description: '',
-                completenessScore: 0,
-                isLive: false
-              });
-              setVendors(prev => [...prev, vendorProf]);
-            }
-            setViewMode('vendor_dashboard');
-            const dbEnqs = await getEnquiries(user.id, 'VENDOR');
-            setEnquiries(dbEnqs);
-          } else if (role === 'ADMIN') {
-            setViewMode('admin_dashboard');
-            const dbMisses = await getSearchMisses();
-            setSearchMisses(dbMisses);
-            const dbEnqs = await getEnquiries(user.id, 'ADMIN');
             setEnquiries(dbEnqs);
           }
         } else {

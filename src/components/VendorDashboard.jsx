@@ -4,7 +4,8 @@ export default function VendorDashboard({
   vendor,
   enquiries,
   onOpenListingEditor,
-  onOpenInbox
+  onOpenInbox,
+  onMarkBooked
 }) {
   const newEnquiriesCount = enquiries.filter((e) => e.status === 'SENT' || e.status === 'REPLIED').length;
   const bookedCount = enquiries.filter((e) => e.status === 'BOOKED').length;

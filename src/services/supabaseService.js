@@ -87,17 +87,22 @@ async function assertUserAccess(targetUserId) {
 
 // === PROFILES ===
 export async function getProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-  if (error) {
-    console.error('Error fetching profile:', error);
+    if (error) {
+      console.warn('Notice fetching profile from DB:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Notice fetching profile:', err);
     return null;
   }
-  return data;
 }
 
 // === VENDORS ===
