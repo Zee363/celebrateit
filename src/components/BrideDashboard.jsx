@@ -27,6 +27,12 @@ export default function BrideDashboard({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
 
+  // Checklist tab filter ('ALL' | 'URGENT' | 'COMPLETED')
+  const [checklistFilter, setChecklistFilter] = useState('ALL');
+
+  // Interactive Guest Simulator State for Active Celebration
+  const [simulatedGuests, setSimulatedGuests] = useState(null);
+
   const handleOpenEditCelebration = (c) => {
     const celeb = c || activeCelebration;
     if (!celeb) return;
@@ -152,6 +158,63 @@ export default function BrideDashboard({
     setShowAddChecklistModal(false);
   };
 
+  // Date Logic for Checklist Task Prompts
+  const today = new Date('2026-08-15'); // Current platform reference date
+
+  const getTaskDateInfo = (dueDateStr) => {
+    if (!dueDateStr) return { daysLeft: 999, status: 'NORMAL', text: 'No due date' };
+    const due = new Date(dueDateStr);
+    const diffTime = due - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return { daysLeft: diffDays, status: 'OVERDUE', text: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''}` };
+    } else if (diffDays === 0) {
+      return { daysLeft: 0, status: 'DUE_TODAY', text: 'Due TODAY!' };
+    } else if (diffDays <= 14) {
+      return { daysLeft: diffDays, status: 'URGENT', text: `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}` };
+    }
+    return { daysLeft: diffDays, status: 'NORMAL', text: `Due: ${dueDateStr}` };
+  };
+
+  // Collect all pending & urgent tasks across celebrations for top banner
+  const allUrgentTasks = bride.celebrations.flatMap((c) =>
+    (c.checklist || [])
+      .filter((t) => !t.done)
+      .map((t) => ({ ...t, celebrationTitle: c.title, celebrationId: c.id, dateInfo: getTaskDateInfo(t.dueDate) }))
+      .filter((t) => t.dateInfo.status === 'OVERDUE' || t.dateInfo.status === 'DUE_TODAY' || t.dateInfo.status === 'URGENT')
+  ).sort((a, b) => a.dateInfo.daysLeft - b.dateInfo.daysLeft);
+
+  // Active celebration checklist items processing
+  const activeChecklistWithDates = (activeCelebration?.checklist || []).map((t) => ({
+    ...t,
+    dateInfo: getTaskDateInfo(t.dueDate)
+  }));
+
+  const filteredChecklist = activeChecklistWithDates.filter((item) => {
+    if (checklistFilter === 'URGENT') {
+      return !item.done && (item.dateInfo.status === 'OVERDUE' || item.dateInfo.status === 'DUE_TODAY' || item.dateInfo.status === 'URGENT');
+    }
+    if (checklistFilter === 'COMPLETED') {
+      return item.done;
+    }
+    return true;
+  });
+
+  // Cost vs Guests Calculations for Active Celebration
+  const currentGuestCount = simulatedGuests ?? (activeCelebration?.guestCount || 100);
+  const plannedBudget = activeCelebration?.budget || 200000;
+  const spentBudget = activeCelebration?.budgetLines?.reduce((acc, b) => acc + (b.actuallySpent || 0), 0) || 0;
+
+  const costPerGuestPlanned = Math.round(plannedBudget / (currentGuestCount || 1));
+  const costPerGuestSpent = Math.round(spentBudget / (currentGuestCount || 1));
+
+  // Projected Cost if guest count changes
+  // Estimate ~65% of budget varies linearly with guest count (catering, decor, drinks, favours)
+  const baseFixedCost = plannedBudget * 0.35;
+  const variableCostPerGuest = (plannedBudget * 0.65) / (activeCelebration?.guestCount || 100);
+  const projectedTotalBudget = Math.round(baseFixedCost + (variableCostPerGuest * currentGuestCount));
+
   return (
     <div className="min-h-screen bg-[#F9F5F2] pt-28 pb-12 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
 
@@ -174,7 +237,7 @@ export default function BrideDashboard({
             onClick={onOpenMuse}
             className="bg-[#9E784B] text-white px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm hover:bg-[#8A673E] transition-all cursor-pointer shadow-xs flex items-center gap-2"
           >
-            <span></span> Ask Muse
+            Ask Muse
           </button>
           <button
             onClick={onOpenDirectory}
@@ -192,6 +255,52 @@ export default function BrideDashboard({
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* Nearing & Urgent Task Prompts Banner */}
+        {allUrgentTasks.length > 0 && (
+          <div className="bg-[#F9F5F2] border-2 border-[#9E784B]/40 rounded-2xl p-5 shadow-xs space-y-3 font-sans">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#1A1816]">
+                    Tasks Nearing Target Due Dates ({allUrgentTasks.length} pending action)
+                  </h3>
+                  <p className="text-xs text-[#1A1816]/80">
+                    Stay on top of your wedding timeline. Here are your highest priority deliverables:
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider bg-[#9E784B] text-white px-3 py-1 rounded-full">
+                Action Required
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+              {allUrgentTasks.slice(0, 3).map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white border border-[#E6DED6] hover:border-[#9E784B]/60 rounded-xl p-3.5 flex items-start justify-between gap-3 shadow-xs transition-colors"
+                >
+                  <div className="space-y-1 text-xs">
+                    <span className="text-[10px] font-semibold uppercase text-[#9E784B] tracking-wider">
+                      {task.celebrationTitle}
+                    </span>
+                    <div className="font-semibold text-[#1A1816] line-clamp-1">{task.title}</div>
+                    <div className="text-[11px] font-bold text-[#9E784B]">
+                      {task.dateInfo.text}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleChecklist(task.celebrationId, task.id)}
+                    className="bg-[#1A1816] text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold hover:bg-[#9E784B] transition-colors whitespace-nowrap cursor-pointer shadow-xs"
+                  >
+                    Done
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* "Both Weddings" Summary Card (Only rendered if bride has 2 celebrations) */}
         {hasTwoCelebrations && (
@@ -261,7 +370,10 @@ export default function BrideDashboard({
           {bride.celebrations.map((c) => (
             <button
               key={c.id}
-              onClick={() => setActiveTab(c.id)}
+              onClick={() => {
+                setActiveTab(c.id);
+                setSimulatedGuests(null);
+              }}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${activeTab === c.id
                   ? 'bg-[#1A1816] text-white shadow-xs'
                   : 'bg-white border border-[#E6DED6] text-[#1A1816]/70 hover:text-[#1A1816]'
@@ -300,10 +412,115 @@ export default function BrideDashboard({
 
                 <button
                   onClick={() => handleOpenEditCelebration(activeCelebration)}
-                  className="bg-[#1A1816] text-white px-4 py-2.5 rounded-lg text-xs font-semibold hover:bg-stone-800 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="bg-[#1A1816] text-white px-4 py-2.5 rounded-lg text-xs font-semibold hover:bg-stone-800 transition-colors shadow-xs cursor-pointer"
                 >
-                  <span>⚙️</span> Edit Details & Guests
+                  Edit Details & Guests
                 </button>
+              </div>
+            </div>
+
+            {/* NEW FEATURE: Cost per Guest & Budget Calculator */}
+            <div className="bg-white border border-[#E6DED6] rounded-2xl p-6 space-y-6 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E6DED6] pb-4">
+                <div>
+                  <span className="text-[10px] font-semibold tracking-wider uppercase text-[#9E784B]">
+                    FINANCIAL ANALYTICS & SIMULATION
+                  </span>
+                  <h3 className="font-serif text-xl font-medium text-[#1A1816]">
+                    Wedding Cost vs. Guest & Budget Calculator
+                  </h3>
+                  <p className="text-xs text-[#1A1816]/60">
+                    Evaluates cost per guest for {activeCelebration.title} and models how guest list adjustments impact your total budget.
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs text-[#1A1816]/60">Planned Cost per Guest</span>
+                  <div className="font-serif text-2xl font-bold text-[#9E784B]">
+                    R {costPerGuestPlanned.toLocaleString('en-ZA')} <span className="text-xs font-sans text-[#1A1816]/60 font-normal">/ guest</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* Card 1: Key Financial Ratios */}
+                <div className="bg-[#F9F5F2] border border-[#E6DED6] rounded-xl p-5 space-y-3">
+                  <h4 className="font-serif text-base font-semibold text-[#1A1816]">Current Budget Summary</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between border-b border-[#E6DED6] pb-1.5">
+                      <span className="text-[#1A1816]/70">Target Guest Count:</span>
+                      <strong className="text-[#1A1816] font-semibold">{currentGuestCount} guests</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-[#E6DED6] pb-1.5">
+                      <span className="text-[#1A1816]/70">Total Planned Budget:</span>
+                      <strong className="text-[#1A1816] font-semibold">R {plannedBudget.toLocaleString('en-ZA')}</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-[#E6DED6] pb-1.5">
+                      <span className="text-[#1A1816]/70">Committed / Spent:</span>
+                      <strong className="text-[#9E784B] font-semibold">R {spentBudget.toLocaleString('en-ZA')}</strong>
+                    </div>
+                    <div className="flex justify-between pt-1">
+                      <span className="text-[#1A1816]/70">Cost Spent per Guest:</span>
+                      <strong className="text-[#1A1816] font-semibold">R {costPerGuestSpent.toLocaleString('en-ZA')} / guest</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Interactive Guest List Simulator Slider */}
+                <div className="bg-[#F9F5F2] border border-[#E6DED6] rounded-xl p-5 space-y-4 md:col-span-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-serif text-base font-semibold text-[#1A1816]">
+                        Guest List Budget Projection Simulator
+                      </h4>
+                      <p className="text-xs text-[#1A1816]/60">Drag the slider to test how guest count changes your projected budget.</p>
+                    </div>
+                    {simulatedGuests !== null && (
+                      <button
+                        onClick={() => setSimulatedGuests(null)}
+                        className="text-[11px] font-semibold text-[#9E784B] hover:underline"
+                      >
+                        Reset to {activeCelebration.guestCount}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center font-semibold text-sm">
+                      <span>Simulated Guests: <strong className="text-[#9E784B] text-lg font-serif">{currentGuestCount} guests</strong></span>
+                      <span className="text-xs text-[#1A1816]/60">Range: 50 – 300</span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="50"
+                      max="300"
+                      step="5"
+                      value={currentGuestCount}
+                      onChange={(e) => setSimulatedGuests(Number(e.target.value))}
+                      className="w-full accent-[#9E784B] cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#E6DED6]">
+                    <div>
+                      <span className="text-xs text-[#1A1816]/60">Projected Total Cost</span>
+                      <div className="font-serif text-xl font-bold text-[#1A1816]">
+                        R {projectedTotalBudget.toLocaleString('en-ZA')}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-[#1A1816]/60">Budget Variance</span>
+                      <div className={`font-serif text-xl font-bold ${projectedTotalBudget > plannedBudget ? 'text-red-700' : 'text-emerald-700'
+                        }`}>
+                        {projectedTotalBudget > plannedBudget ? '+' : ''}
+                        R {(projectedTotalBudget - plannedBudget).toLocaleString('en-ZA')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -361,47 +578,77 @@ export default function BrideDashboard({
                 </div>
               </div>
 
-              {/* Right: Checklist Items (5 cols) */}
+              {/* Right: Checklist Items with Date Tracking (5 cols) */}
               <div className="lg:col-span-5 bg-white border border-[#E6DED6] rounded-2xl p-6 space-y-6">
-                <div className="flex items-center justify-between border-b border-[#E6DED6] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#E6DED6] pb-4 gap-2">
                   <div>
                     <h3 className="font-serif text-xl font-medium text-[#1A1816]">
                       Action Checklist
                     </h3>
                     <p className="text-xs text-[#1A1816]/60">Tasks for {activeCelebration.title}</p>
                   </div>
-                  <button
-                    onClick={() => setShowAddChecklistModal(true)}
-                    className="text-xs font-semibold bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] px-3.5 py-2 rounded-lg hover:border-[#9E784B] transition-colors cursor-pointer"
-                  >
-                    + Task
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Checklist filter */}
+                    <select
+                      value={checklistFilter}
+                      onChange={(e) => setChecklistFilter(e.target.value)}
+                      className="bg-[#F9F5F2] border border-[#E6DED6] text-[11px] font-semibold px-2.5 py-1.5 rounded-lg text-[#1A1816]"
+                    >
+                      <option value="ALL">All Tasks</option>
+                      <option value="URGENT">Urgent / Due Soon</option>
+                      <option value="COMPLETED">Completed</option>
+                    </select>
+
+                    <button
+                      onClick={() => setShowAddChecklistModal(true)}
+                      className="text-xs font-semibold bg-[#F9F5F2] border border-[#E6DED6] text-[#1A1816] px-3.5 py-1.5 rounded-lg hover:border-[#9E784B] transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      + Task
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  {activeCelebration.checklist.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => toggleChecklist(activeCelebration.id, item.id)}
-                      className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer ${item.done
-                          ? 'bg-stone-50 border-[#E6DED6] text-stone-400'
-                          : 'bg-[#F9F5F2] border-[#E6DED6] text-[#1A1816] hover:border-[#9E784B]'
-                        }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.done}
-                        onChange={() => { }}
-                        className="mt-0.5 accent-[#9E784B] w-4 h-4 rounded-xs cursor-pointer"
-                      />
-                      <div className="space-y-0.5 text-xs">
-                        <div className={`font-medium ${item.done ? 'line-through' : ''}`}>
-                          {item.title}
+                  {filteredChecklist.length > 0 ? (
+                    filteredChecklist.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleChecklist(activeCelebration.id, item.id)}
+                        className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer ${item.done
+                            ? 'bg-stone-50 border-[#E6DED6] text-stone-400'
+                            : item.dateInfo.status === 'OVERDUE' || item.dateInfo.status === 'DUE_TODAY' || item.dateInfo.status === 'URGENT'
+                              ? 'bg-[#F9F5F2] border-2 border-[#9E784B]/60 text-[#1A1816]'
+                              : 'bg-[#F9F5F2] border-[#E6DED6] text-[#1A1816] hover:border-[#9E784B]'
+                          }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          onChange={() => { }}
+                          className="mt-0.5 accent-[#9E784B] w-4 h-4 rounded-xs cursor-pointer"
+                        />
+                        <div className="space-y-1 text-xs w-full">
+                          <div className={`font-medium ${item.done ? 'line-through' : ''}`}>
+                            {item.title}
+                          </div>
+
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-[#1A1816]/50">Due: {item.dueDate}</span>
+                            {!item.done && item.dateInfo.status !== 'NORMAL' && (
+                              <span className="font-bold px-2 py-0.5 rounded-md text-[10px] bg-[#9E784B] text-white">
+                                {item.dateInfo.text}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-[#1A1816]/50">Due: {item.dueDate}</div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-center text-xs text-[#1A1816]/50 py-4">
+                      No tasks found for this filter.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -415,11 +662,11 @@ export default function BrideDashboard({
       {/* Add Budget Line Modal */}
       {showAddBudgetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-md w-full p-6 space-y-4 font-sans">
             <h3 className="font-serif text-xl font-medium text-[#1A1816]">
               Add Budget Item to {activeCelebration.title}
             </h3>
-            <form onSubmit={handleAddBudgetLine} className="space-y-3 font-sans text-xs">
+            <form onSubmit={handleAddBudgetLine} className="space-y-3 text-xs">
               <div>
                 <label className="font-semibold text-[#1A1816]/80">Category</label>
                 <input
@@ -452,7 +699,7 @@ export default function BrideDashboard({
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#1A1816] text-white px-5 py-2 rounded-lg font-semibold"
+                  className="bg-[#1A1816] text-white px-5 py-2 rounded-lg font-semibold cursor-pointer"
                 >
                   Save Item
                 </button>
@@ -465,11 +712,11 @@ export default function BrideDashboard({
       {/* Add Checklist Task Modal */}
       {showAddChecklistModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-md w-full p-6 space-y-4 font-sans">
             <h3 className="font-serif text-xl font-medium text-[#1A1816]">
               Add Task to {activeCelebration.title}
             </h3>
-            <form onSubmit={handleAddChecklistTask} className="space-y-3 font-sans text-xs">
+            <form onSubmit={handleAddChecklistTask} className="space-y-3 text-xs">
               <div>
                 <label className="font-semibold text-[#1A1816]/80">Task Title</label>
                 <input
@@ -500,7 +747,7 @@ export default function BrideDashboard({
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#1A1816] text-white px-5 py-2 rounded-lg font-semibold"
+                  className="bg-[#1A1816] text-white px-5 py-2 rounded-lg font-semibold cursor-pointer"
                 >
                   Save Task
                 </button>
@@ -520,7 +767,7 @@ export default function BrideDashboard({
             >
               &times;
             </button>
-            
+
             <h3 className="font-serif text-xl font-medium text-[#1A1816]">
               Edit Wedding Details & Guest Count
             </h3>

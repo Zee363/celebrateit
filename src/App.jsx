@@ -47,8 +47,7 @@ import {
   updateEnquiryStatus,
   updateEnquiryMessages,
   getSearchMisses,
-  logSearchMiss,
-  deleteAllDatabaseData
+  logSearchMiss
 } from './services/supabaseService';
 
 const isSupabaseConfigured = Boolean(
@@ -62,7 +61,8 @@ const isUuid = (str) => {
 };
 
 const validateRoleAccess = (view, user) => {
-  const role = user?.role;
+  const role = String(user?.role || '').toUpperCase();
+  
   if (view === 'admin_dashboard') {
     return role === 'ADMIN';
   }
@@ -70,16 +70,13 @@ const validateRoleAccess = (view, user) => {
     return role === 'VENDOR';
   }
   if (view === 'bride_dashboard') {
-    return role === 'BRIDE';
+    return role === 'BRIDE' || role === 'ADMIN';
   }
-  if (view === 'planning_together') {
-    return role === 'BRIDE';
+  if (view === 'planning_together' || view === 'landing' || view === 'vendor_directory' || view === 'account_settings') {
+    return true;
   }
   if (view === 'messages') {
-    return !!role; // Must be authenticated
-  }
-  if (view === 'landing' || view === 'vendor_directory' || view === 'account_settings') {
-    return true;
+    return role === 'BRIDE' || role === 'VENDOR' || role === 'ADMIN';
   }
   return false;
 };
@@ -245,6 +242,8 @@ export default function App() {
           localStorage.setItem('celebrateit_role', role);
           setCurrentUser({ id: user.id, name, email: user.email, role });
 
+          const isTaskDirectLink = window.location.hash.includes('planning_together');
+
           if (role === 'VENDOR') {
             setOnboardingOpen(false);
             const allVendors = await getVendors();
@@ -267,7 +266,7 @@ export default function App() {
                 console.warn('Notice creating vendor profile:', e);
               }
             }
-            setViewMode('vendor_dashboard');
+            if (!isTaskDirectLink) setViewMode('vendor_dashboard');
             try {
               const dbEnqs = await getEnquiries(user.id, 'VENDOR');
               setEnquiries(dbEnqs);
@@ -276,7 +275,7 @@ export default function App() {
             }
           } else if (role === 'ADMIN') {
             setOnboardingOpen(false);
-            setViewMode('admin_dashboard');
+            if (!isTaskDirectLink) setViewMode('admin_dashboard');
             try {
               const dbEnqs = await getEnquiries(user.id, 'ADMIN');
               setEnquiries(dbEnqs);
@@ -284,17 +283,19 @@ export default function App() {
               console.warn('Notice loading admin enquiries:', e);
             }
           } else if (role === 'BRIDE') {
+            const isLocalOnboarded = localStorage.getItem('celebrateit_onboarded_' + user.id) === 'true';
             const brideData = await getBrideData(user.id);
-            if (brideData && brideData.weddingId) {
-              setBride(brideData);
-              setViewMode('bride_dashboard');
+            
+            if (brideData && (brideData.weddingId || brideData.hasOnboarded || isLocalOnboarded)) {
+              setBride({ ...brideData, hasOnboarded: true });
+              if (!isTaskDirectLink) setViewMode('bride_dashboard');
               setOnboardingOpen(false);
             } else {
               // Local storage fallback so onboarding doesn't repeat on refresh
               const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
-              if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
-                setBride(localBride);
-                setViewMode('bride_dashboard');
+              if (isLocalOnboarded || (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0)) {
+                setBride({ ...(localBride || {}), id: user.id, name, email: user.email, role: 'BRIDE', hasOnboarded: true });
+                if (!isTaskDirectLink) setViewMode('bride_dashboard');
                 setOnboardingOpen(false);
               } else {
                 setBride({
@@ -312,7 +313,7 @@ export default function App() {
           } else {
             // Safety fallback for any unrecognised non-bride role
             setOnboardingOpen(false);
-            setViewMode('vendor_dashboard');
+            if (!isTaskDirectLink) setViewMode('vendor_dashboard');
           }
         } else {
           setCurrentUser(null);
@@ -333,11 +334,14 @@ export default function App() {
 
   const handleAuthSuccess = async (user) => {
     setCurrentUser(user);
+    const userId = user.id || 'b1';
+    const isLocalOnboarded = localStorage.getItem('celebrateit_onboarded_' + userId) === 'true';
+
     if (!isSupabaseConfigured) {
       if (user.role === 'BRIDE') {
         const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
-        if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
-          setBride(localBride);
+        if (isLocalOnboarded || (localBride && localBride.celebrations && localBride.celebrations.length > 0)) {
+          setBride({ ...(localBride || INITIAL_BRIDE), hasOnboarded: true });
           setOnboardingOpen(false);
           setViewMode('bride_dashboard');
         } else {
@@ -355,14 +359,14 @@ export default function App() {
 
     if (user.role === 'BRIDE') {
       const brideData = await getBrideData(user.id);
-      if (brideData && brideData.weddingId) {
-        setBride(brideData);
+      if (isLocalOnboarded || (brideData && (brideData.weddingId || brideData.hasOnboarded))) {
+        setBride({ ...(brideData || INITIAL_BRIDE), hasOnboarded: true });
         setViewMode('bride_dashboard');
         setOnboardingOpen(false);
       } else {
         const localBride = localStorage.getItem('celebrateit_bride') ? JSON.parse(localStorage.getItem('celebrateit_bride')) : null;
-        if (localBride && localBride.id === user.id && localBride.celebrations && localBride.celebrations.length > 0) {
-          setBride(localBride);
+        if (localBride && localBride.celebrations && localBride.celebrations.length > 0) {
+          setBride({ ...localBride, hasOnboarded: true });
           setOnboardingOpen(false);
           setViewMode('bride_dashboard');
         } else {
@@ -392,7 +396,12 @@ export default function App() {
   };
 
   const handleSwitchRole = async (targetRole) => {
-    // Always close onboarding modal when switching roles
+    // Only allow role switching for admins or demo override
+    if (currentUser?.role && currentUser.role !== 'ADMIN' && currentUser.role !== targetRole) {
+      alert(`Role-Based Access Control (RBAC) active: Your account is registered as ${currentUser.role}. You cannot switch to ${targetRole} view without authenticating as a ${targetRole}.`);
+      return;
+    }
+
     setOnboardingOpen(false);
     
     if (!isSupabaseConfigured) {
@@ -432,29 +441,27 @@ export default function App() {
 
   // Onboarding Complete
   const handleOnboardingComplete = async (newBrideData) => {
-    if (!isSupabaseConfigured) {
-      setBride(newBrideData);
-      setOnboardingOpen(false);
-      setViewMode('bride_dashboard');
-      return;
-    }
+    const onboardedBride = { ...newBrideData, hasOnboarded: true };
+    const userId = currentUser?.id || newBrideData.id || 'b1';
+    
+    localStorage.setItem('celebrateit_onboarded_' + userId, 'true');
+    localStorage.setItem('celebrateit_bride', JSON.stringify(onboardedBride));
+    setBride(onboardedBride);
+    setOnboardingOpen(false);
+    setViewMode('bride_dashboard');
+
+    if (!isSupabaseConfigured || !isUuid(userId)) return;
 
     try {
       await saveBrideOnboarding(
-        currentUser.id,
+        userId,
         newBrideData.overallBudget,
         newBrideData.celebrations
       );
-      const fullBrideData = await getBrideData(currentUser.id);
-      setBride(fullBrideData || newBrideData);
-      setOnboardingOpen(false);
-      setViewMode('bride_dashboard');
+      const fullBrideData = await getBrideData(userId);
+      setBride(fullBrideData ? { ...fullBrideData, hasOnboarded: true } : onboardedBride);
     } catch (err) {
       console.error('Error completing onboarding:', err);
-      // Fallback so the app doesn't crash if database is not fully set up
-      setBride(newBrideData);
-      setOnboardingOpen(false);
-      setViewMode('bride_dashboard');
     }
   };
 
@@ -463,10 +470,11 @@ export default function App() {
     setSelectedVendorForProfile(vendor);
   };
 
-  const handleOpenEnquiryFromProfile = (vendor) => {
+  const handleOpenEnquiryFromProfile = (vendor, selectedPackages = [], total = 0) => {
     setSelectedVendorForProfile(null);
-    setSelectedVendorForEnquiry(vendor);
+    setSelectedVendorForEnquiry({ vendor, selectedPackages, total });
   };
+
 
   const handleSendEnquiry = async (newEnquiry) => {
     if (!isSupabaseConfigured || !isUuid(newEnquiry.brideId) || !isUuid(newEnquiry.vendorId)) {
@@ -667,36 +675,6 @@ export default function App() {
     }
   };
 
-  // Clear all database data (admin only)
-  const handleClearDatabase = async () => {
-    if (!window.confirm('WARNING: This will permanently delete ALL data in the database (vendors, brides, enquiries, profiles, everything). This action cannot be undone. Are you absolutely sure?')) {
-      return;
-    }
-
-    if (!isSupabaseConfigured) {
-      // Mock mode: clear local state
-      setVendors([]);
-      setBride(INITIAL_BRIDE);
-      setEnquiries([]);
-      setSearchMisses([]);
-      alert('Mock data cleared (mock mode only)');
-      return;
-    }
-
-    try {
-      const result = await deleteAllDatabaseData();
-      alert('✅ ' + result.message + '\n\nThe database is now empty and ready for fresh population.');
-      // Reset local state
-      setVendors([]);
-      setBride(INITIAL_BRIDE);
-      setEnquiries([]);
-      setSearchMisses([]);
-    } catch (err) {
-      console.error('Error clearing database:', err);
-      alert('Failed to clear database: ' + err.message);
-    }
-  };
-
   // Bride data changes inside dashboard (Checklist checking, adding tasks, budget lines)
   const handleUpdateBride = async (updatedBride) => {
     setBride(updatedBride);
@@ -846,7 +824,6 @@ export default function App() {
             vendors={vendors}
             onToggleVendorLive={handleToggleVendorLive}
             onDeleteVendor={handleDeleteVendor}
-            onClearDatabase={handleClearDatabase}
             searchMisses={searchMisses}
             enquiries={enquiries}
           />

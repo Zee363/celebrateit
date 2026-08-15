@@ -108,7 +108,7 @@ export default function EnquiryInboxModal({
                       onClick={() => onMarkBooked(activeEnquiry.id)}
                       className="bg-[#9E784B] text-white px-3.5 py-1.5 rounded-lg font-semibold hover:bg-[#8A673E] transition-colors cursor-pointer text-xs"
                     >
-                      Mark as Booked ✓
+                      Mark as Booked
                     </button>
                   )}
                 </div>

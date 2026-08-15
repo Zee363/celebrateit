@@ -166,7 +166,7 @@ export default function VendorDirectory({
                         {v.businessName}
                       </h3>
                       <div className="flex items-center gap-1 text-xs font-semibold text-[#1A1816]">
-                        <span>★</span> {v.rating} ({v.reviewsCount})
+                        Rating: {v.rating} ({v.reviewsCount})
                       </div>
                     </div>
 

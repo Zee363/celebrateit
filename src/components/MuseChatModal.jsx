@@ -197,7 +197,7 @@ export default function MuseChatModal({
         const photographers = (vendors || []).filter((v) => v.isLive && v.category === 'Photography');
         if (photographers.length > 0) {
           museReply = `Here are top-rated photographers for traditional attire and white weddings in Gauteng:\n\n` +
-            photographers.map(p => `• **${p.businessName}** (From R ${p.priceFrom.toLocaleString('en-ZA')}) - Rating: ★ ${p.rating}`).join('\n\n');
+            photographers.map(p => `• **${p.businessName}** (From R ${p.priceFrom.toLocaleString('en-ZA')}) - Rating: ${p.rating}`).join('\n\n');
         } else {
           museReply = `I can help connect you with documentary-style wedding photographers across Johannesburg and Pretoria. Typically, Thando M. Photography (from R18 000) captures rich traditional colors beautifully.`;
         }
@@ -259,7 +259,7 @@ export default function MuseChatModal({
                   }}
                   className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
                 >
-                  💡 Split R600,000 budget
+                  Split R600,000 budget
                 </button>
                 <button
                   onClick={() => {
@@ -267,7 +267,7 @@ export default function MuseChatModal({
                   }}
                   className="bg-white hover:bg-[#F9F5F2] border border-[#E6DED6] rounded-xl px-4 py-2.5 text-xs text-[#1A1816]/80 text-left sm:text-center transition-colors cursor-pointer"
                 >
-                  📅 Generate next tasks
+                  Generate next tasks
                 </button>
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function MuseChatModal({
                     <div className="pt-1">
                       {appliedActions[m.id] ? (
                         <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-3 py-1.5 rounded-lg font-semibold border border-emerald-200">
-                          ✓ {appliedActions[m.id]}
+                          {appliedActions[m.id]}
                         </span>
                       ) : (
                         <button
@@ -308,7 +308,7 @@ export default function MuseChatModal({
                           }}
                           className="bg-[#9E784B] text-white text-xs px-4 py-2 rounded-lg font-semibold hover:bg-[#8A673E] transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
                         >
-                          {m.action.type === 'apply_budget' ? '⚡ Apply Budget Breakdown to Workspace' : '📋 Add 4 Recommended Tasks to Checklist'}
+                          {m.action.type === 'apply_budget' ? 'Apply Budget Breakdown to Workspace' : 'Add 4 Recommended Tasks to Checklist'}
                         </button>
                       )}
                     </div>

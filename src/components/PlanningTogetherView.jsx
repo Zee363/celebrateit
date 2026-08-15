@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CelebrateLogo } from './CustomIcons';
 import {
   getPlanningTeam,
   addPlanningTeamMember,
@@ -75,14 +76,20 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     localStorage.setItem(`celebrateit_tasks_${userId}`, JSON.stringify(tasks));
   }, [tasks, userId]);
 
+  const [emailModeStatus, setEmailModeStatus] = useState('simulated_dev');
+
   const triggerBackendEmail = async (payload) => {
     try {
       const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      await fetch(`${backendUrl}/api/send-invitation-email`, {
+      const res = await fetch(`${backendUrl}/api/send-invitation-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const data = await res.json();
+      if (data?.mode) {
+        setEmailModeStatus(data.mode);
+      }
     } catch (err) {
       console.warn('Backend Email API notice:', err);
     }
@@ -92,9 +99,9 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     e.preventDefault();
     if (!newMemberName.trim() || !newMemberEmail.trim()) return;
 
-    let newMember = { 
-      id: 'tm_' + Date.now(), 
-      name: newMemberName.trim(), 
+    let newMember = {
+      id: 'tm_' + Date.now(),
+      name: newMemberName.trim(),
       role: newMemberRole.trim() || 'Planning Committee Helper',
       email: newMemberEmail.trim()
     };
@@ -105,7 +112,8 @@ export default function PlanningTogetherView({ currentUser, bride }) {
           currentUser.id,
           newMember.name,
           newMember.role,
-          newMember.email
+          newMember.email,
+          currentUser.id  // bride_id: the bride's profile/auth id
         );
         if (dbMember && dbMember.id) {
           newMember = dbMember;
@@ -120,26 +128,6 @@ export default function PlanningTogetherView({ currentUser, bride }) {
     setNewMemberRole('');
     setNewMemberEmail('');
     setShowInviteForm(false);
-
-    // Call backend Email API endpoint
-    triggerBackendEmail({
-      to: newMember.email,
-      memberName: newMember.name,
-      memberRole: newMember.role,
-      brideName,
-      taskName: 'Review traditional/white wedding budget split guidelines',
-      dueDate: 'Within 7 days'
-    });
-
-    // Trigger celebratory email preview modal
-    setEmailModal({
-      isOpen: true,
-      memberName: newMember.name,
-      memberRole: newMember.role,
-      memberEmail: newMember.email,
-      taskName: 'Review traditional/white wedding budget split guidelines',
-      dueDate: 'Within 7 days'
-    });
   };
 
   const handleAddTask = async (e) => {
@@ -202,17 +190,15 @@ export default function PlanningTogetherView({ currentUser, bride }) {
   };
 
   const toggleTask = async (taskId) => {
-    const targetTask = tasks.find(t => t.id === taskId);
-    const newCompleted = targetTask ? !targetTask.completed : false;
-
     if (isUuid(currentUser?.id) && isUuid(taskId)) {
       try {
-        await updatePlanningTaskStatus(taskId, newCompleted);
+        await updatePlanningTaskStatus(taskId, true);
       } catch (err) {
         console.warn('Could not update task status in DB:', err);
       }
     }
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+    // Remove task immediately upon checking it off
+    setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
   return (
@@ -231,14 +217,14 @@ export default function PlanningTogetherView({ currentUser, bride }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          
+
           {/* Left Column: Team Members */}
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold tracking-wider uppercase text-[#9E784B]">
                 YOUR CIRCLE
               </span>
-              <button 
+              <button
                 onClick={() => setShowInviteForm(!showInviteForm)}
                 className="text-xs font-semibold text-[#1A1816] hover:text-[#9E784B] transition-colors cursor-pointer bg-white border border-[#E6DED6] px-3 py-1.5 rounded-lg shadow-sm"
               >
@@ -286,7 +272,7 @@ export default function PlanningTogetherView({ currentUser, bride }) {
                 teamMembers.map(member => (
                   <div key={member.id} className="bg-white border border-[#E6DED6] rounded-xl p-4 flex items-center gap-4 shadow-sm">
                     <div className="w-10 h-10 rounded-full bg-[#F9F5F2] border border-[#E6DED6] flex items-center justify-center text-xs font-bold text-[#9E784B]">
-                      {member.name.substring(0,2).toUpperCase()}
+                      {member.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <div className="font-semibold text-sm text-[#1A1816]">{member.name}</div>
@@ -304,7 +290,7 @@ export default function PlanningTogetherView({ currentUser, bride }) {
               <span className="text-[10px] font-semibold tracking-wider uppercase text-[#9E784B]">
                 SHARED TASKS
               </span>
-              <button 
+              <button
                 onClick={() => setShowTaskForm(!showTaskForm)}
                 className="text-xs font-semibold text-[#1A1816] hover:text-[#9E784B] transition-colors cursor-pointer bg-white border border-[#E6DED6] px-3 py-1.5 rounded-lg shadow-sm"
               >
@@ -371,9 +357,9 @@ export default function PlanningTogetherView({ currentUser, bride }) {
                   return (
                     <div key={task.id} className="bg-white border border-[#E6DED6] rounded-xl p-4 flex items-start gap-4 shadow-sm hover:border-[#9E784B]/50 transition-colors">
                       <div className="mt-0.5">
-                        <input 
-                          type="checkbox" 
-                          checked={task.completed} 
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
                           onChange={() => toggleTask(task.id)}
                           className="w-4 h-4 accent-[#9E784B] cursor-pointer"
                         />
@@ -386,7 +372,7 @@ export default function PlanningTogetherView({ currentUser, bride }) {
                           {assignee && (
                             <span className="flex items-center gap-1.5 bg-[#F9F5F2] px-2 py-0.5 rounded-md">
                               <span className="w-4 h-4 rounded-full bg-[#9E784B] text-white flex items-center justify-center text-[8px] font-bold">
-                                {assignee.name.substring(0,1).toUpperCase()}
+                                {assignee.name.substring(0, 1).toUpperCase()}
                               </span>
                               {assignee.name}
                             </span>
@@ -416,29 +402,35 @@ export default function PlanningTogetherView({ currentUser, bride }) {
       {emailModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white border border-[#E6DED6] rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden font-sans">
-            
+
             {/* Header */}
             <div className="p-4 sm:p-5 border-b border-[#E6DED6] bg-[#F9F5F2] flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-lg font-semibold text-[#1A1816] flex items-center gap-2">
-                  <span className="inline-block animate-pulse w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                  CelebrateIT Email Notification Simulator
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full ${emailModeStatus === 'live_smtp' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                  CelebrateIT Email Dispatch {emailModeStatus === 'live_smtp' ? 'Live' : 'Simulator'}
                 </h3>
                 <p className="text-xs text-[#1A1816]/70 mt-0.5">
-                  Email invitation dispatched successfully to <span className="font-semibold text-[#9E784B]">{emailModal.memberEmail}</span>
+                  Email invitation processed for <span className="font-semibold text-[#9E784B]">{emailModal.memberEmail}</span>
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setEmailModal({ ...emailModal, isOpen: false })}
                 className="text-[#1A1816]/60 hover:text-[#1A1816] transition-colors p-2 text-xl font-bold cursor-pointer"
               >
-                ✕
+                &times;
               </button>
             </div>
 
+            {emailModeStatus !== 'live_smtp' && (
+              <div className="bg-amber-50 border-b border-amber-200 p-3 text-[11px] text-amber-900 font-sans leading-relaxed">
+                <strong>Why am I not seeing this in my inbox?</strong> The server is running in dev simulation mode because <code className="bg-white border px-1 py-0.5 rounded font-mono">SMTP_USER</code> in <code className="bg-white border px-1 py-0.5 rounded font-mono">server/.env</code> has placeholder settings. To receive real emails in your personal inbox, open <code className="bg-white border px-1 py-0.5 rounded font-mono">server/.env</code> and enter your Gmail address & App Password.
+              </div>
+            )}
+
             {/* Email Container (simulating an email client interface) */}
             <div className="flex-1 p-6 overflow-y-auto bg-stone-100/50 space-y-4">
-              
+
               {/* Email Envelope Details */}
               <div className="bg-white border border-[#E6DED6] rounded-xl p-4 shadow-sm text-xs space-y-2 text-stone-700">
                 <div>
@@ -448,48 +440,45 @@ export default function PlanningTogetherView({ currentUser, bride }) {
                   <span className="font-semibold">To:</span> {emailModal.memberName} &lt;{emailModal.memberEmail}&gt;
                 </div>
                 <div className="border-t border-stone-100 pt-2 font-semibold text-[#1A1816] text-sm">
-                  Subject: You’ve Been Chosen to Help Make {brideName}’s Big Day Special
+                  Subject: You’ve Been Asked to Stand by {brideName} as her {emailModal.memberRole}
                 </div>
               </div>
 
               {/* Email Content Frame */}
               <div className="bg-white border border-[#E6DED6] rounded-xl p-8 sm:p-12 shadow-sm text-[#1A1816] font-serif leading-relaxed max-w-xl mx-auto space-y-6">
-                
+
                 {/* Brand Header */}
                 <div className="text-center pb-6 border-b border-[#E6DED6]">
-                  <div className="font-serif text-2xl font-bold tracking-wider text-[#1A1816]">CELEBRATE IT</div>
-                  <div className="text-[10px] uppercase tracking-widest text-[#9E784B] mt-1">Wedding Coordination Portal</div>
+                  <div className="flex justify-center mb-1">
+                    <CelebrateLogo className="h-8 justify-center" />
+                  </div>
+                  <div className="text-[10px] uppercase tracking-widest text-[#9E784B] mt-1 font-sans font-semibold">Wedding Coordination Portal</div>
                 </div>
 
-                <p className="text-base">Hi {emailModal.memberName},</p>
+                <p className="text-[#1A1816] font-serif text-base leading-relaxed">Hi {emailModal.memberName},</p>
 
-                <p>
+                <p className="text-[#1A1816] font-serif text-base leading-relaxed">
                   There’s something very special about being asked to stand beside someone you love as they prepare for one of the biggest days of their life.
                 </p>
 
-                <p>
-                  We’re excited to let you know that <strong>{brideName} has chosen you as her {emailModal.memberRole}</strong> as she plans her wedding to her partner.
+                <p className="text-[#1A1816] font-serif text-base leading-relaxed">
+                  We’re excited to let you know that <strong>{brideName} has asked you to be her {emailModal.memberRole}</strong> as she plans her wedding to her partner.
                 </p>
 
-                <p>
+                <p className="text-[#1A1816] font-serif text-base leading-relaxed">
                   This means you have the wonderful opportunity to be part of her journey — helping her stay organised, making important decisions, and most importantly, being there for her along the way.
                 </p>
 
                 <div className="bg-[#F9F5F2] border-l-4 border-[#9E784B] p-4 font-sans text-sm rounded-r-lg space-y-2">
                   <h4 className="font-semibold text-xs uppercase tracking-wider text-[#9E784B]">Your Role: {emailModal.memberRole}</h4>
                   <p className="text-xs text-[#1A1816]/80 leading-relaxed">
-                    As {emailModal.memberRole}, you’ll be helping {brideName} with:
+                    As {emailModal.memberRole}, you’ll be helping {brideName} with coordinating ceremony and reception timelines, managing task deliverables, and supporting wedding logistics.
                   </p>
-                  <ul className="list-disc pl-4 text-xs text-[#1A1816]/80 space-y-1 mt-1">
-                    <li>Coordinating ceremony and reception timelines</li>
-                    <li>Managing task deliverables and vendor checklist options</li>
-                    <li>Supporting wedding logistics and planning tasks</li>
-                  </ul>
                 </div>
 
-                <div className="border-t border-[#E6DED6] pt-6 space-y-4">
-                  <h4 className="font-serif text-lg font-semibold text-[#1A1816]">Your First Task</h4>
-                  <div className="bg-white border border-[#E6DED6] p-4 rounded-xl font-sans text-sm flex justify-between items-center shadow-xs">
+                <div className="border-t border-[#E6DED6] pt-6 space-y-4 font-sans">
+                  <h4 className="font-serif text-lg font-semibold text-[#1A1816]">Your Assigned Task</h4>
+                  <div className="bg-white border border-[#E6DED6] p-4 rounded-xl text-sm flex justify-between items-center shadow-xs">
                     <div>
                       <div className="font-semibold text-[#1a1816]">{emailModal.taskName}</div>
                       <div className="text-xs text-stone-500 mt-1">Due Date: {emailModal.dueDate}</div>
@@ -498,20 +487,20 @@ export default function PlanningTogetherView({ currentUser, bride }) {
                 </div>
 
                 <div className="text-center py-2 font-sans">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setEmailModal({ ...emailModal, isOpen: false })}
-                    className="inline-block bg-[#1A1816] text-white px-8 py-3.5 rounded-lg text-sm font-semibold hover:bg-stone-800 transition-colors shadow-md cursor-pointer"
+                    className="inline-block bg-[#1A1816] text-white px-8 py-3.5 rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-stone-800 transition-colors shadow-md cursor-pointer"
                   >
                     View Your Wedding Tasks
                   </button>
                 </div>
 
-                <p className="text-sm italic text-stone-600">
+                <p className="text-sm font-serif italic text-stone-600 leading-relaxed">
                   Please remember, this isn't about doing everything perfectly. It's about being there, lending a hand, and helping {brideName} enjoy the journey as much as possible.
                 </p>
 
-                <p className="text-sm font-sans text-stone-500">
+                <p className="text-sm font-serif text-stone-600 leading-relaxed">
                   Thank you for being someone {brideName} can count on. We’re so happy to have you as part of her wedding journey, and we can’t wait to see the beautiful memories you’ll help create together.
                 </p>
 

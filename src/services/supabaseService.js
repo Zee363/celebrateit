@@ -386,14 +386,15 @@ export async function updateWeddingBudget(weddingId, overallBudget) {
   }
 }
 
-export async function updateCelebrationDetails(celebrationId, budget, guestCount, date, area) {
+export async function updateCelebrationDetails(celebrationId, title, date, area, guestCount, budget) {
   const { error } = await supabase
     .from('celebrations')
     .update({
-      budget: budget,
-      guest_count: guestCount,
+      title: title,
       date: date,
-      area: area
+      area: area,
+      guest_count: guestCount,
+      budget: budget
     })
     .eq('id', celebrationId);
 
@@ -617,12 +618,24 @@ export async function logSearchMiss(category, area) {
 }
 
 // === PLANNING TOGETHER (TEAMS & TASKS) ===
-export async function getPlanningTeam(userId) {
-  const { data, error } = await supabase
+
+/**
+ * Fetch the planning circle for a bride.
+ * Uses bride_id if provided (preferred), otherwise falls back to user_id.
+ */
+export async function getPlanningTeam(userId, brideId) {
+  let query = supabase
     .from('planning_teams')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: true });
+
+  if (brideId) {
+    query = query.eq('bride_id', brideId);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching planning team:', error);
@@ -632,16 +645,23 @@ export async function getPlanningTeam(userId) {
     id: m.id,
     name: m.name,
     role: m.role,
-    email: m.email
+    email: m.email,
+    brideId: m.bride_id
   }));
 }
 
-export async function addPlanningTeamMember(userId, name, role, email) {
+/**
+ * Add a member to a bride's circle.
+ * Stores both user_id (the bride's auth id) and bride_id (the wedding id or profile id)
+ * so the circle can be queried by either.
+ */
+export async function addPlanningTeamMember(userId, name, role, email, brideId) {
   await assertUserAccess(userId);
   const { data, error } = await supabase
     .from('planning_teams')
     .insert({
       user_id: userId,
+      bride_id: brideId || userId, // use wedding/bride id if provided, else user id
       name,
       role,
       email
@@ -650,6 +670,23 @@ export async function addPlanningTeamMember(userId, name, role, email) {
     .single();
 
   if (error) {
+    // If bride_id column doesn't exist yet, fall back without it
+    if (error.code === '42703') {
+      console.warn('bride_id column not yet added to planning_teams. Run the migration SQL. Falling back to user_id only.');
+      const { data: fallbackData, error: fallbackErr } = await supabase
+        .from('planning_teams')
+        .insert({ user_id: userId, name, role, email })
+        .select()
+        .single();
+      if (fallbackErr) throw fallbackErr;
+      return {
+        id: fallbackData.id,
+        name: fallbackData.name,
+        role: fallbackData.role,
+        email: fallbackData.email,
+        brideId: userId
+      };
+    }
     console.error('Error adding planning team member:', error);
     throw error;
   }
@@ -657,7 +694,8 @@ export async function addPlanningTeamMember(userId, name, role, email) {
     id: data.id,
     name: data.name,
     role: data.role,
-    email: data.email
+    email: data.email,
+    brideId: data.bride_id
   };
 }
 

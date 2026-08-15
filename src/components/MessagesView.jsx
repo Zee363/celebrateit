@@ -126,7 +126,7 @@ export default function MessagesView({ enquiries, onBrowseDirectory, onSendReply
                         onClick={() => onMarkBooked(activeEnquiry.id)}
                         className="bg-[#9E784B] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#8A673E] transition-colors cursor-pointer text-sm shadow-xs"
                       >
-                        Mark as Booked ✓
+                        Mark as Booked
                       </button>
                     )}
                   </div>

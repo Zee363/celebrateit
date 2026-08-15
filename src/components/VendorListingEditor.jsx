@@ -9,6 +9,19 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
   const [coverPhoto, setCoverPhoto] = useState(vendor?.coverPhoto || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80');
   const [areas, setAreas] = useState(vendor?.areasServed || ['Sandton', 'Johannesburg']);
 
+  // PDF Brochure & Service Packages state
+  const [brochurePdfUrl, setBrochurePdfUrl] = useState(vendor?.brochurePdfUrl || '');
+  const [brochureFileName, setBrochureFileName] = useState(vendor?.brochureFileName || '');
+  const [packages, setPackages] = useState(vendor?.packages || [
+    { id: 'p_1', title: 'Main Package Service', price: 15000, type: 'FIXED', description: 'Comprehensive package tailored for weddings' }
+  ]);
+
+  // Package builder draft input
+  const [newPkgTitle, setNewPkgTitle] = useState('');
+  const [newPkgPrice, setNewPkgPrice] = useState('');
+  const [newPkgType, setNewPkgType] = useState('FIXED');
+  const [newPkgDesc, setNewPkgDesc] = useState('');
+
   // Initialize form when vendor changes
   useEffect(() => {
     if (vendor) {
@@ -19,6 +32,9 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
       setDescription(vendor.description || '');
       setCoverPhoto(vendor.coverPhoto || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80');
       setAreas(vendor.areasServed && Array.isArray(vendor.areasServed) ? vendor.areasServed : []);
+      setBrochurePdfUrl(vendor.brochurePdfUrl || '');
+      setBrochureFileName(vendor.brochureFileName || '');
+      setPackages(vendor.packages || []);
     }
   }, [vendor?.id]);
 
@@ -41,6 +57,28 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
     }
   };
 
+  const handleAddPackage = (e) => {
+    e.preventDefault();
+    if (!newPkgTitle.trim() || !newPkgPrice) return;
+
+    const newPkg = {
+      id: 'pkg_' + Date.now(),
+      title: newPkgTitle.trim(),
+      price: Number(newPkgPrice),
+      type: newPkgType,
+      description: newPkgDesc.trim()
+    };
+
+    setPackages([...packages, newPkg]);
+    setNewPkgTitle('');
+    setNewPkgPrice('');
+    setNewPkgDesc('');
+  };
+
+  const handleDeletePackage = (pkgId) => {
+    setPackages(packages.filter(p => p.id !== pkgId));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -54,6 +92,9 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
       description,
       coverPhoto,
       areasServed: areas,
+      brochurePdfUrl,
+      brochureFileName: brochureFileName || (brochurePdfUrl ? 'Brochure_Pricing.pdf' : ''),
+      packages,
       completenessScore: score,
       isLive: isLive,
       rating: vendor?.rating || 5.0,
@@ -66,7 +107,7 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F5F2] py-8 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
+    <div className="min-h-screen bg-[#F9F5F2] pt-28 pb-12 px-4 sm:px-6 lg:px-12 font-sans space-y-8">
 
       {/* Header */}
       <div className="max-w-4xl mx-auto flex items-center justify-between border-b border-[#E6DED6] pb-6">
@@ -75,10 +116,10 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
             VENDOR LISTING EDITOR
           </span>
           <h1 className="font-serif text-3xl font-medium text-[#1A1816]">
-            Edit Business Profile
+            Edit Business Profile & Pricing Packages
           </h1>
           <p className="text-xs text-[#1A1816]/70">
-            Listings auto-publish as soon as completeness passes 70%. No manual approval required.
+            Listings auto-publish as soon as completeness passes 70%. Upload brochures and custom service options.
           </p>
         </div>
 
@@ -166,7 +207,7 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
                       : 'border-[#E6DED6] bg-white text-[#1A1816]/70'
                     }`}
                 >
-                  {area} {areas.includes(area) ? '✓' : '+'}
+                  {area} {areas.includes(area) ? '(Selected)' : ''}
                 </button>
               ))}
             </div>
@@ -185,7 +226,7 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[#1A1816]/80">Business Description</label>
             <textarea
-              rows={4}
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your services, traditions catered for, and unique selling points..."
@@ -193,11 +234,118 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
             />
           </div>
 
+          {/* NEW FEATURE: PDF Brochure Upload / Link */}
+          <div className="border-t border-[#E6DED6] pt-4 space-y-3">
+            <div className="space-y-0.5">
+              <label className="text-xs font-bold text-[#1A1816]">PDF Price List / Brochure (Optional)</label>
+              <p className="text-[11px] text-[#1A1816]/60">Allow brides to download and peruse your full PDF catalog directly from your listing.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[#1A1816]/70">PDF Document URL</label>
+                <input
+                  type="url"
+                  value={brochurePdfUrl}
+                  onChange={(e) => setBrochurePdfUrl(e.target.value)}
+                  placeholder="https://.../brochure.pdf"
+                  className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3 py-2 text-xs text-[#1A1816] mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1A1816]/70">Display File Name</label>
+                <input
+                  type="text"
+                  value={brochureFileName}
+                  onChange={(e) => setBrochureFileName(e.target.value)}
+                  placeholder="e.g. Venue_Packages_2026.pdf"
+                  className="w-full bg-[#F9F5F2] border border-[#E6DED6] rounded-lg px-3 py-2 text-xs text-[#1A1816] mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* NEW FEATURE: Custom Service Packages Builder */}
+          <div className="border-t border-[#E6DED6] pt-4 space-y-4">
+            <div>
+              <label className="text-xs font-bold text-[#1A1816]">Custom Service Packages & Items</label>
+              <p className="text-[11px] text-[#1A1816]/60">Brides can check off these specific items when viewing your profile to build custom quotes!</p>
+            </div>
+
+            {/* List Existing Packages */}
+            <div className="space-y-2">
+              {packages.map((pkg) => (
+                <div key={pkg.id} className="p-3 bg-[#F9F5F2] border border-[#E6DED6] rounded-xl flex items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="font-semibold text-[#1A1816]">
+                      {pkg.title} — <span className="text-[#9E784B] font-serif font-bold">R {pkg.price.toLocaleString('en-ZA')}</span> {pkg.type === 'PER_GUEST' ? '/ guest' : ''}
+                    </div>
+                    {pkg.description && <p className="text-[11px] text-[#1A1816]/70">{pkg.description}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePackage(pkg.id)}
+                    className="text-red-600 hover:text-red-800 font-semibold text-xs cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Package Sub-form */}
+            <div className="p-4 border border-dashed border-[#9E784B]/40 rounded-xl bg-[#9E784B]/5 space-y-3">
+              <h5 className="text-xs font-bold text-[#9E784B] uppercase tracking-wider">+ Add Package / Service Option</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={newPkgTitle}
+                  onChange={(e) => setNewPkgTitle(e.target.value)}
+                  placeholder="Service Title (e.g. Drone Footage)"
+                  className="bg-white border border-[#E6DED6] rounded-lg px-2.5 py-1.5 text-xs text-[#1A1816]"
+                />
+                <input
+                  type="number"
+                  value={newPkgPrice}
+                  onChange={(e) => setNewPkgPrice(e.target.value)}
+                  placeholder="Price (R)"
+                  className="bg-white border border-[#E6DED6] rounded-lg px-2.5 py-1.5 text-xs text-[#1A1816]"
+                />
+                <select
+                  value={newPkgType}
+                  onChange={(e) => setNewPkgType(e.target.value)}
+                  className="bg-white border border-[#E6DED6] rounded-lg px-2.5 py-1.5 text-xs text-[#1A1816]"
+                >
+                  <option value="FIXED">Fixed Total Price</option>
+                  <option value="PER_GUEST">Per Guest Price</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newPkgDesc}
+                  onChange={(e) => setNewPkgDesc(e.target.value)}
+                  placeholder="Short description of what is included..."
+                  className="w-full bg-white border border-[#E6DED6] rounded-lg px-2.5 py-1.5 text-xs text-[#1A1816]"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPackage}
+                  className="bg-[#9E784B] text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#8A673E] cursor-pointer whitespace-nowrap"
+                >
+                  Add Option
+                </button>
+              </div>
+            </div>
+
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-[#1A1816] text-white py-3 rounded-lg text-xs font-semibold hover:bg-[#2A2623] transition-colors cursor-pointer"
+            className="w-full bg-[#1A1816] text-white py-3 rounded-lg text-xs font-semibold hover:bg-[#2A2623] transition-colors cursor-pointer shadow-xs"
           >
-            Save & Publish Listing
+            Save & Publish Listing Profile
           </button>
         </form>
 
@@ -236,3 +384,4 @@ export default function VendorListingEditor({ vendor, onSaveVendor, onBackToDash
     </div>
   );
 }
+
